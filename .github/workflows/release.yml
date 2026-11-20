@@ -220,7 +220,7 @@ jobs:
           merge-multiple: false
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v3
         with:
           name: Release ${{ needs.tag_release.outputs.tag_name }}
           tag_name: ${{ needs.tag_release.outputs.tag_name }}
