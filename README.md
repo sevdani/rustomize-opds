@@ -1,6 +1,6 @@
 # rustomize-opds
 
-![CI Status](https://github.com/rustomize/rustomize-opds/workflows/Mainline%20CI/badge.svg)
+[![Mainline CI](https://github.com/sevdani/rustomize-opds/actions/workflows/mainline.yml/badge.svg?branch=main)](https://github.com/sevdani/rustomize-opds/actions/workflows/mainline.yml)
 [![Crates.io](https://img.shields.io/crates/v/rustomize-opds)](https://crates.io/crates/rustomize-opds)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/rustomize/rustomize-opds/blob/main/LICENSE)
 
