@@ -14,5 +14,3 @@ serde-xml-rs = "0.6"
 chrono = { version = "0.4", features = ["serde"] }
 thiserror = "1.0"
 
-[dev-dependencies]
-indoc = "2.0"
