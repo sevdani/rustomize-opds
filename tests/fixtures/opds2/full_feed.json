@@ -1,0 +1,147 @@
+{
+  "metadata": {
+    "title": "Complete OPDS 2.0 Catalog",
+    "subtitle": "A comprehensive catalog with all OPDS 2.0 features",
+    "identifier": "urn:uuid:complete-catalog-12345678-1234-1234-1234-123456789012",
+    "modified": "2024-01-15T10:30:00Z",
+    "items_per_page": 50,
+    "current_page": 1,
+    "number_of_items": 1000
+  },
+  "links": [
+    {
+      "rel": "self",
+      "href": "http://example.com/opds2/full.json",
+      "type": "application/opds+json"
+    },
+    {
+      "rel": "start",
+      "href": "http://example.com/opds2/",
+      "type": "application/opds+json"
+    },
+    {
+      "rel": "search",
+      "href": "http://example.com/opds2/search?q={searchTerms}",
+      "type": "application/opds+json",
+      "templated": true
+    }
+  ],
+  "navigation": [
+    {
+      "rel": "subcollection",
+      "href": "http://example.com/opds2/categories.json",
+      "type": "application/opds+json",
+      "title": "Categories"
+    },
+    {
+      "rel": "subcollection",
+      "href": "http://example.com/opds2/new.json",
+      "type": "application/opds+json",
+      "title": "New Arrivals"
+    }
+  ],
+  "publications": [
+    {
+      "metadata": {
+        "title": "The Art of Programming",
+        "subtitle": "A comprehensive guide",
+        "identifier": "urn:uuid:book-1-12345678-1234-1234-1234-123456789012",
+        "@type": "http://schema.org/Book",
+        "author": {
+          "name": "Donald Knuth",
+          "identifier": "urn:author:knuth"
+        },
+        "language": "en",
+        "published": "2024-01-01T00:00:00Z",
+        "description": "The classic programming text covering fundamental algorithms"
+      },
+      "links": [
+        {
+          "rel": "self",
+          "href": "http://example.com/pub/book1.json",
+          "type": "application/opds-publication+json"
+        },
+        {
+          "rel": "acquisition",
+          "href": "http://example.com/book1.epub",
+          "type": "application/epub+zip",
+          "title": "Download EPUB",
+          "properties": {
+            "price": {
+              "currency": "USD",
+              "value": 29.99
+            },
+            "indirect_acquisition": [
+              {
+                "type": "application/vnd.adobe.adept+xml"
+              }
+            ]
+          }
+        },
+        {
+          "rel": "alternate",
+          "href": "http://example.com/book1.html",
+          "type": "text/html",
+          "title": "Web version"
+        }
+      ],
+      "images": [
+        {
+          "rel": "image",
+          "href": "http://example.com/book1-cover.jpg",
+          "type": "image/jpeg",
+          "height": 300,
+          "width": 200
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "title": "Open Source Guide",
+        "identifier": "urn:uuid:book-2-12345678-1234-1234-1234-123456789012",
+        "@type": "http://schema.org/Book",
+        "author": {
+          "name": "Open Source Foundation"
+        },
+        "language": "en",
+        "published": "2024-01-05T00:00:00Z",
+        "description": "A guide to open source development practices"
+      },
+      "links": [
+        {
+          "rel": "self",
+          "href": "http://example.com/pub/book2.json",
+          "type": "application/opds-publication+json"
+        },
+        {
+          "rel": "borrow",
+          "href": "http://example.com/book2.pdf",
+          "type": "application/pdf",
+          "title": "Borrow PDF"
+        }
+      ],
+      "images": [
+        {
+          "rel": "image",
+          "href": "http://example.com/book2-cover.png",
+          "type": "image/png"
+        }
+      ]
+    }
+  ],
+  "groups": [
+    {
+      "metadata": {
+        "title": "Featured Books",
+        "identifier": "urn:uuid:group-featured"
+      },
+      "links": [
+        {
+          "rel": "collection",
+          "href": "http://example.com/opds2/featured.json",
+          "type": "application/opds+json"
+        }
+      ]
+    }
+  ]
+}

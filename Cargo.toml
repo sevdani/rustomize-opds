@@ -1,0 +1,18 @@
+[package]
+name = "rustomize-opds"
+version = "1.0.0"
+edition = "2021"
+description = "OPDS parser and generator library supporting OPDS 1.2 and OPDS 2.0"
+license = "MIT"
+repository = "https://github.com/rustomize/rustomize-opds"
+readme = "README.md"
+
+[dependencies]
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+serde-xml-rs = "0.6"
+chrono = { version = "0.4", features = ["serde"] }
+thiserror = "1.0"
+
+[dev-dependencies]
+indoc = "2.0"

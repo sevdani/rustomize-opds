@@ -1,0 +1,35 @@
+{
+  "metadata": {
+    "title": "Minimal OPDS 2.0 Feed",
+    "identifier": "urn:uuid:minimal-feed-12345678-1234-1234-1234-123456789012"
+  },
+  "links": [
+    {
+      "rel": "self",
+      "href": "http://example.com/opds2/minimal.json",
+      "type": "application/opds+json"
+    }
+  ],
+  "publications": [
+    {
+      "metadata": {
+        "title": "Sample Publication",
+        "identifier": "urn:uuid:sample-pub-12345678-1234-1234-1234-123456789012",
+        "@type": "http://schema.org/Book"
+      },
+      "links": [
+        {
+          "rel": "self",
+          "href": "http://example.com/pub/sample.json",
+          "type": "application/opds-publication+json"
+        },
+        {
+          "rel": "download",
+          "href": "http://example.com/book.epub",
+          "type": "application/epub+zip",
+          "title": "Download EPUB"
+        }
+      ]
+    }
+  ]
+}

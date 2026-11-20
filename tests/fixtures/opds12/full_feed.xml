@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+    <id>urn:uuid:catalog-12345678-1234-1234-1234-123456789012</id>
+    <title>Complete OPDS 1.2 Catalog</title>
+    <updated>2024-01-15T10:30:00Z</updated>
+    <icon>http://example.com/icon.png</icon>
+    <logo>http://example.com/logo.png</logo>
+    <generator>Test Generator 1.0</generator>
+    
+    <author>
+        <name>Library Admin</name>
+        <uri>http://example.com</uri>
+        <email>admin@example.com</email>
+    </author>
+    
+    <contributor>Support Team</contributor>
+    <rights>Copyright 2024</rights>
+    
+    <link rel="self" href="http://example.com/opds/full.xml" type="application/atom+xml;profile=opds-catalog;kind=navigation"/>
+    <link rel="start" href="http://example.com/opds/" type="application/atom+xml;profile=opds-catalog"/>
+    
+    <!-- Entry 1: Book -->
+    <entry>
+        <id>urn:uuid:book-1-12345678-1234-1234-1234-123456789012</id>
+        <title>The Art of Programming</title>
+        <updated>2024-01-10T08:00:00Z</updated>
+        <published>2024-01-01T00:00:00Z</published>
+        
+        <author>
+            <name>Donald Knuth</name>
+            <uri>http://example.com/author/knuth</uri>
+        </author>
+        
+        <contributor>Ann Archer</contributor>
+        
+        <dc:identifier xmlns:dc="http://purl.org/dc/terms/">ISBN:978-0201896831</dc:identifier>
+        <dc:language xmlns:dc="http://purl.org/dc/terms/">en</dc:language>
+        <dc:publisher xmlns:dc="http://purl.org/dc/terms/">Addison-Wesley</dc:publisher>
+        <dc:subject xmlns:dc="http://purl.org/dc/terms/">Computer Science</dc:subject>
+        
+        <link rel="http://opds-spec.org/acquisition" href="http://example.com/book1.epub" type="application/epub+zip"/>
+        
+        <link rel="alternate" href="http://example.com/book1.html" type="text/html" title="Web version"/>
+    </entry>
+    
+    <!-- Entry 2: Free book -->
+    <entry>
+        <id>urn:uuid:book-2-12345678-1234-1234-1234-123456789012</id>
+        <title>Open Source Guide</title>
+        <updated>2024-01-05T12:00:00Z</updated>
+        <author>
+            <name>Open Source Foundation</name>
+        </author>
+        
+        <dc:identifier xmlns:dc="http://purl.org/dc/terms/">DOI:10.1234/opensource</dc:identifier>
+        <dc:language xmlns:dc="http://purl.org/dc/terms/">en</dc:language>
+        
+        <link rel="http://opds-spec.org/acquisition" href="http://example.com/book2.pdf" type="application/pdf"/>
+    </entry>
+</feed>

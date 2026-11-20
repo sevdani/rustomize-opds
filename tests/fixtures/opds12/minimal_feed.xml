@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+    <id>urn:uuid:12345678-1234-1234-1234-123456789012</id>
+    <title>Minimal OPDS 1.2 Feed</title>
+    <updated>2024-01-15T10:30:00Z</updated>
+    <link rel="self" href="http://example.com/opds/minimal.xml" type="application/atom+xml;profile=opds-catalog;kind=navigation"/>
+    <entry>
+        <id>urn:uuid:entry-12345678-1234-1234-1234-123456789012</id>
+        <title>Sample Book</title>
+        <updated>2024-01-15T10:30:00Z</updated>
+        <author>
+            <name>John Doe</name>
+        </author>
+        <link rel="http://opds-spec.org/acquisition" href="http://example.com/book.epub" type="application/epub+zip"/>
+    </entry>
+</feed>
