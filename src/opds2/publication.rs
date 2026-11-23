@@ -1,8 +1,9 @@
 //! OPDS 2.0 Publication types
 
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
-use crate::common::{CommonMetadata, Validate, ValidationResult};
+use crate::common::{Validate, ValidationResult};
 use crate::opds2::Link;
 
 /// OPDS 2.0 Publication
@@ -27,15 +28,48 @@ pub struct Publication {
     pub page_list: Option<Vec<Link>>,
 }
 
-/// Publication metadata (extends CommonMetadata)
+/// Publication metadata
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct PublicationMetadata {
-    /// Metadata fields from CommonMetadata
-    #[serde(flatten)]
-    pub common: CommonMetadata,
+    /// Identifier for the publication
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub identifier: Option<String>,
     /// Type (schema.org type)
     #[serde(rename = "@type", skip_serializing_if = "Option::is_none")]
     pub type_: Option<String>,
+    /// Title of the publication
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub title: Option<String>,
+    /// Subtitle
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub subtitle: Option<String>,
+    /// Last modification date
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub modified: Option<DateTime<Utc>>,
+    /// Description
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
+    /// Items per page (pagination)
+    #[serde(
+        rename = "itemsPerPage",
+        alias = "items_per_page",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub items_per_page: Option<u32>,
+    /// Current page number (pagination)
+    #[serde(
+        rename = "currentPage",
+        alias = "current_page",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub current_page: Option<u32>,
+    /// Total number of items (pagination)
+    #[serde(
+        rename = "numberOfItems",
+        alias = "number_of_items",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub number_of_items: Option<u32>,
     /// Author (can be string or object with links)
     #[serde(skip_serializing_if = "Option::is_none")]
     pub author: Option<Author>,
@@ -60,12 +94,6 @@ pub struct PublicationMetadata {
     /// Published date
     #[serde(skip_serializing_if = "Option::is_none")]
     pub published: Option<String>,
-    /// Description
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub description: Option<String>,
-    /// Identifier
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub identifier: Option<String>,
     /// Series info
     #[serde(skip_serializing_if = "Option::is_none")]
     pub series: Option<SeriesInfo>,
@@ -103,8 +131,15 @@ pub struct SeriesInfo {
 impl Default for PublicationMetadata {
     fn default() -> Self {
         Self {
-            common: CommonMetadata::default(),
+            identifier: None,
             type_: Some("http://schema.org/Book".to_string()),
+            title: None,
+            subtitle: None,
+            modified: None,
+            description: None,
+            items_per_page: None,
+            current_page: None,
+            number_of_items: None,
             author: None,
             translator: None,
             editor: None,
@@ -113,8 +148,6 @@ impl Default for PublicationMetadata {
             publisher: None,
             language: None,
             published: None,
-            description: None,
-            identifier: None,
             series: None,
             collection: None,
         }
@@ -142,7 +175,18 @@ impl Publication {
 
     /// Validate the publication
     pub fn validate(&self) -> ValidationResult {
-        self.metadata.common.validate()?;
+        if self.metadata.title.is_none()
+            || self
+                .metadata
+                .title
+                .as_ref()
+                .map(|s| s.is_empty())
+                .unwrap_or(true)
+        {
+            return Err(crate::common::error::OpdsError::MissingField(
+                "title".to_string(),
+            ));
+        }
 
         // Must have at least one acquisition link
         let has_acquisition = self.links.iter().any(|l| {
@@ -193,7 +237,7 @@ impl PublicationMetadata {
     /// Create new publication metadata with title
     pub fn new(title: impl Into<String>) -> Self {
         Self {
-            common: CommonMetadata::new(title),
+            title: Some(title.into()),
             ..Default::default()
         }
     }

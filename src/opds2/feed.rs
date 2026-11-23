@@ -1,16 +1,54 @@
 //! OPDS 2.0 Feed types
 
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-use crate::common::{CommonMetadata, Validate, ValidationResult};
+use crate::common::{Validate, ValidationResult};
 use crate::opds2::{Link, Publication};
 
 /// OPDS 2.0 Feed
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct Feed {
-    /// Feed metadata
-    pub metadata: CommonMetadata,
+    /// Feed identifier
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub identifier: Option<String>,
+    /// Type (schema.org type)
+    #[serde(rename = "@type", skip_serializing_if = "Option::is_none")]
+    pub type_: Option<String>,
+    /// Feed title
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub title: Option<String>,
+    /// Subtitle
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub subtitle: Option<String>,
+    /// Last modification date
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub modified: Option<DateTime<Utc>>,
+    /// Description
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
+    /// Items per page (pagination)
+    #[serde(
+        rename = "itemsPerPage",
+        alias = "items_per_page",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub items_per_page: Option<u32>,
+    /// Current page number (pagination)
+    #[serde(
+        rename = "currentPage",
+        alias = "current_page",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub current_page: Option<u32>,
+    /// Total number of items (pagination)
+    #[serde(
+        rename = "numberOfItems",
+        alias = "number_of_items",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub number_of_items: Option<u32>,
     /// Feed links
     #[serde(rename = "links")]
     pub feed_links: Vec<Link>,
@@ -37,8 +75,45 @@ pub struct Feed {
 /// Facet group
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct Facet {
-    /// Facet metadata
-    pub metadata: CommonMetadata,
+    /// Facet identifier
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub identifier: Option<String>,
+    /// Type (schema.org type)
+    #[serde(rename = "@type", skip_serializing_if = "Option::is_none")]
+    pub type_: Option<String>,
+    /// Facet title
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub title: Option<String>,
+    /// Subtitle
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub subtitle: Option<String>,
+    /// Last modification date
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub modified: Option<DateTime<Utc>>,
+    /// Description
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
+    /// Items per page (pagination)
+    #[serde(
+        rename = "itemsPerPage",
+        alias = "items_per_page",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub items_per_page: Option<u32>,
+    /// Current page number (pagination)
+    #[serde(
+        rename = "currentPage",
+        alias = "current_page",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub current_page: Option<u32>,
+    /// Total number of items (pagination)
+    #[serde(
+        rename = "numberOfItems",
+        alias = "number_of_items",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub number_of_items: Option<u32>,
     /// Facet links (required)
     #[serde(rename = "links")]
     pub links: Vec<Link>,
@@ -50,8 +125,45 @@ pub struct Facet {
 /// Group
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct Group {
-    /// Group metadata
-    pub metadata: CommonMetadata,
+    /// Group identifier
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub identifier: Option<String>,
+    /// Type (schema.org type)
+    #[serde(rename = "@type", skip_serializing_if = "Option::is_none")]
+    pub type_: Option<String>,
+    /// Group title
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub title: Option<String>,
+    /// Subtitle
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub subtitle: Option<String>,
+    /// Last modification date
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub modified: Option<DateTime<Utc>>,
+    /// Description
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
+    /// Items per page (pagination)
+    #[serde(
+        rename = "itemsPerPage",
+        alias = "items_per_page",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub items_per_page: Option<u32>,
+    /// Current page number (pagination)
+    #[serde(
+        rename = "currentPage",
+        alias = "current_page",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub current_page: Option<u32>,
+    /// Total number of items (pagination)
+    #[serde(
+        rename = "numberOfItems",
+        alias = "number_of_items",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub number_of_items: Option<u32>,
     /// Navigation collection
     #[serde(skip_serializing_if = "Option::is_none")]
     pub navigation: Option<Vec<Link>>,
@@ -68,9 +180,17 @@ pub struct Group {
 
 impl Feed {
     /// Create a new feed with required fields
-    pub fn new(metadata: CommonMetadata, feed_links: Vec<Link>) -> Self {
+    pub fn new(title: impl Into<String>, feed_links: Vec<Link>) -> Self {
         Self {
-            metadata,
+            identifier: None,
+            type_: None,
+            title: Some(title.into()),
+            subtitle: None,
+            modified: None,
+            description: None,
+            items_per_page: None,
+            current_page: None,
+            number_of_items: None,
             feed_links,
             navigation: None,
             publications: None,
@@ -95,7 +215,11 @@ impl Feed {
 
     /// Validate the feed
     pub fn validate(&self) -> ValidationResult {
-        self.metadata.validate()?;
+        if self.title.is_none() || self.title.as_ref().map(|s| s.is_empty()).unwrap_or(true) {
+            return Err(crate::common::error::OpdsError::MissingField(
+                "title".to_string(),
+            ));
+        }
 
         // Must have at least one collection
         if self.navigation.is_none() && self.publications.is_none() && self.groups.is_none() {
@@ -162,9 +286,17 @@ impl Validate for Feed {
 
 impl Facet {
     /// Create a new facet
-    pub fn new(metadata: CommonMetadata, links: Vec<Link>) -> Self {
+    pub fn new(title: impl Into<String>, links: Vec<Link>) -> Self {
         Self {
-            metadata,
+            identifier: None,
+            type_: None,
+            title: Some(title.into()),
+            subtitle: None,
+            modified: None,
+            description: None,
+            items_per_page: None,
+            current_page: None,
+            number_of_items: None,
             links,
             images: None,
         }
@@ -172,7 +304,11 @@ impl Facet {
 
     /// Validate the facet
     pub fn validate(&self) -> ValidationResult {
-        self.metadata.validate()?;
+        if self.title.is_none() || self.title.as_ref().map(|s| s.is_empty()).unwrap_or(true) {
+            return Err(crate::common::error::OpdsError::MissingField(
+                "title".to_string(),
+            ));
+        }
 
         // Links must have at least one item (minItems: 1)
         if self.links.is_empty() {
@@ -193,9 +329,17 @@ impl Validate for Facet {
 
 impl Group {
     /// Create a new group
-    pub fn new(metadata: CommonMetadata) -> Self {
+    pub fn new(title: impl Into<String>) -> Self {
         Self {
-            metadata,
+            identifier: None,
+            type_: None,
+            title: Some(title.into()),
+            subtitle: None,
+            modified: None,
+            description: None,
+            items_per_page: None,
+            current_page: None,
+            number_of_items: None,
             navigation: None,
             publications: None,
             images: None,
@@ -205,7 +349,11 @@ impl Group {
 
     /// Validate the group
     pub fn validate(&self) -> ValidationResult {
-        self.metadata.validate()?;
+        if self.title.is_none() || self.title.as_ref().map(|s| s.is_empty()).unwrap_or(true) {
+            return Err(crate::common::error::OpdsError::MissingField(
+                "title".to_string(),
+            ));
+        }
 
         // Must have at least one collection
         if self.navigation.is_none() && self.publications.is_none() && self.links.is_none() {

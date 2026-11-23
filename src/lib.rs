@@ -17,11 +17,9 @@
 //!
 //! ```no_run
 //! use rustomize_opds::opds2::{Parser, Generator, Feed};
-//! use rustomize_opds::common::CommonMetadata;
 //!
 //! // Create a feed
-//! let metadata = CommonMetadata::new("My OPDS Catalog");
-//! let feed = Feed::new(metadata, vec![]);
+//! let feed = Feed::new("My OPDS Catalog", vec![]);
 //!
 //! // Generate to JSON
 //! let generator = Generator::new();
@@ -57,7 +55,6 @@ pub mod common;
 pub mod opds12;
 pub mod opds2;
 
-pub use common::CommonMetadata;
 pub use common::{is_valid_currency, is_valid_image_format, OpdsError, Result};
 pub use opds12::{Generator as Opds12Generator, Parser as Opds12Parser};
 pub use opds2::{Generator as Opds2Generator, Parser as Opds2Parser};

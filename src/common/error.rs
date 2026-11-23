@@ -57,8 +57,7 @@ mod tests {
     #[test]
     fn test_opds_error_variants() {
         // Xml error - use a simple error variant
-        let io_error = std::io::Error::new(std::io::ErrorKind::NotFound, "test");
-        let xml_error = OpdsError::Xml(serde_xml_rs::Error::Io { source: io_error });
+        let xml_error = OpdsError::Xml(serde_xml_rs::Error::Custom("test".to_string()));
         assert!(matches!(xml_error, OpdsError::Xml(_)));
 
         // Json error - use io variant
@@ -103,10 +102,6 @@ mod tests {
     #[test]
     fn test_validate_trait() {
         // Test that types implement the Validate trait
-        use crate::CommonMetadata;
-        let metadata = CommonMetadata::new("Test");
-        let _ = metadata.validate();
-
         use crate::opds2::Link;
         let link = Link::new("self", "http://example.com");
         let _ = link.validate();

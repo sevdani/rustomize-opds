@@ -71,15 +71,11 @@ mod tests {
     #[test]
     fn test_validate_feed() {
         let parser = Parser::new();
-        use crate::common::CommonMetadata;
         use crate::opds2::{Feed, Link};
         // Create a valid feed with at least one collection (publications)
         let publications = vec![];
-        let feed = Feed::new(
-            CommonMetadata::new("Test Feed"),
-            vec![Link::new("self", "http://example.com")],
-        )
-        .with_publications(publications);
+        let feed = Feed::new("Test Feed", vec![Link::new("self", "http://example.com")])
+            .with_publications(publications);
 
         assert!(parser.validate_feed(&feed).is_ok());
     }

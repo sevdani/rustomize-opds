@@ -54,12 +54,10 @@ impl Generator {
 
     /// Generate a minimal OPDS 2.0 feed
     pub fn generate_minimal_feed(title: impl Into<String>, self_href: impl Into<String>) -> Feed {
-        let metadata = crate::common::CommonMetadata::new(title);
-
         let feed_link =
             crate::opds2::Link::new("self", self_href).with_type("application/opds+json");
 
-        Feed::new(metadata, vec![feed_link])
+        Feed::new(title, vec![feed_link])
     }
 
     /// Generate a minimal OPDS 2.0 publication
@@ -97,6 +95,66 @@ impl LinkWithType for crate::opds2::Link {
     }
 }
 
+/// Extension trait for Link to set additional properties
+pub trait LinkWithProperties {
+    /// Set the title on a link
+    fn with_title(self, title: impl Into<String>) -> Self;
+    /// Set the height on a link
+    fn with_height(self, height: u32) -> Self;
+    /// Set the width on a link
+    fn with_width(self, width: u32) -> Self;
+    /// Set the properties on a link
+    fn with_properties(self, properties: crate::opds2::LinkProperties) -> Self;
+}
+
+impl LinkWithProperties for crate::opds2::Link {
+    fn with_title(mut self, title: impl Into<String>) -> Self {
+        self.title = Some(title.into());
+        self
+    }
+
+    fn with_height(mut self, height: u32) -> Self {
+        self.height = Some(height);
+        self
+    }
+
+    fn with_width(mut self, width: u32) -> Self {
+        self.width = Some(width);
+        self
+    }
+
+    fn with_properties(mut self, properties: crate::opds2::LinkProperties) -> Self {
+        self.properties = Some(properties);
+        self
+    }
+}
+
+/// Extension trait for Feed to add publications
+pub trait FeedWithPublications {
+    /// Add publications to a feed
+    fn with_publications(self, publications: Vec<crate::opds2::Publication>) -> Self;
+}
+
+impl FeedWithPublications for crate::opds2::Feed {
+    fn with_publications(mut self, publications: Vec<crate::opds2::Publication>) -> Self {
+        self.publications = Some(publications);
+        self
+    }
+}
+
+/// Extension trait for Publication to add links
+pub trait PublicationWithLink {
+    /// Add a link to a publication
+    fn with_link(self, link: crate::opds2::Link) -> Self;
+}
+
+impl PublicationWithLink for crate::opds2::Publication {
+    fn with_link(mut self, link: crate::opds2::Link) -> Self {
+        self.links.push(link);
+        self
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -111,7 +169,7 @@ mod tests {
     fn test_generate_minimal_feed() {
         let feed = Generator::generate_minimal_feed("Test Feed", "http://example.com/feed.json");
 
-        assert_eq!(feed.metadata.title, Some("Test Feed".to_string()));
+        assert_eq!(feed.title, Some("Test Feed".to_string()));
         assert_eq!(feed.feed_links.len(), 1);
         assert_eq!(feed.feed_links[0].rel, "self");
         assert_eq!(feed.feed_links[0].href, "http://example.com/feed.json");
@@ -126,7 +184,7 @@ mod tests {
         );
 
         assert_eq!(
-            publication.metadata.common.title,
+            publication.metadata.title,
             Some("Test Publication".to_string())
         );
         assert_eq!(publication.links.len(), 2);

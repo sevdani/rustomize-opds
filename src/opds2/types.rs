@@ -168,6 +168,12 @@ impl Link {
         if self.href.is_empty() {
             return Err(OpdsError::Validation("href cannot be empty".to_string()));
         }
+
+        // Validate properties if present
+        if let Some(ref properties) = self.properties {
+            properties.validate()?;
+        }
+
         Ok(())
     }
 }

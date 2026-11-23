@@ -10,15 +10,20 @@ fn test_parse_minimal_opds2_feed() {
     let json = std::fs::read_to_string("tests/fixtures/opds2/minimal_feed.json")
         .expect("Failed to read fixture file");
 
+    // Try parsing JSON first to verify
+    let parsed_json: serde_json::Value =
+        serde_json::from_str(&json).expect("Failed to parse JSON as Value");
+
+    // Print to stderr
+    eprintln!("Parsed JSON as Value: {}", parsed_json);
+    eprintln!("Attempting to parse as Feed...");
+
     // Parse the feed
     let feed = parser.parse_feed(&json).expect("Failed to parse feed");
 
     // Verify feed metadata
-    assert_eq!(
-        feed.metadata.title,
-        Some("Minimal OPDS 2.0 Feed".to_string())
-    );
-    assert!(feed.metadata.identifier.is_some());
+    assert_eq!(feed.title, Some("Minimal OPDS 2.0 Feed".to_string()));
+    assert!(feed.identifier.is_some());
 
     // Verify links
     assert!(!feed.feed_links.is_empty());
@@ -35,10 +40,7 @@ fn test_parse_minimal_opds2_feed() {
 
     // Verify first publication
     let pub_ = &publications[0];
-    assert_eq!(
-        pub_.metadata.common.title,
-        Some("Sample Publication".to_string())
-    );
+    assert_eq!(pub_.metadata.title, Some("Sample Publication".to_string()));
     assert!(pub_.metadata.type_.is_some());
 }
 
@@ -54,14 +56,11 @@ fn test_parse_full_opds2_feed() {
     let feed = parser.parse_feed(&json).expect("Failed to parse feed");
 
     // Verify feed metadata
-    assert_eq!(
-        feed.metadata.title,
-        Some("Complete OPDS 2.0 Catalog".to_string())
-    );
-    assert!(feed.metadata.subtitle.is_some());
-    assert_eq!(feed.metadata.items_per_page, Some(50));
-    assert_eq!(feed.metadata.current_page, Some(1));
-    assert_eq!(feed.metadata.number_of_items, Some(1000));
+    assert_eq!(feed.title, Some("Complete OPDS 2.0 Catalog".to_string()));
+    assert!(feed.subtitle.is_some());
+    assert_eq!(feed.items_per_page, Some(50));
+    assert_eq!(feed.current_page, Some(1));
+    assert_eq!(feed.number_of_items, Some(1000));
 
     // Verify multiple link types
     assert!(!feed.feed_links.is_empty());
@@ -85,7 +84,7 @@ fn test_parse_full_opds2_feed() {
     // Verify first publication has complex metadata
     let pub_ = &publications[0];
     assert_eq!(
-        pub_.metadata.common.title,
+        pub_.metadata.title,
         Some("The Art of Programming".to_string())
     );
     assert!(pub_.metadata.author.is_some());
@@ -137,7 +136,7 @@ fn test_round_trip_generation() {
         .expect("Failed to reparse generated JSON");
 
     // Verify basic properties match
-    assert_eq!(reparsed_feed.metadata.title, feed.metadata.title);
+    assert_eq!(reparsed_feed.title, feed.title);
 }
 
 #[test]
@@ -145,7 +144,7 @@ fn test_generate_minimal_structures() {
     // Test generating minimal feed
     let feed = Generator::generate_minimal_feed("Test Catalog", "http://example.com/catalog.json");
 
-    assert_eq!(feed.metadata.title, Some("Test Catalog".to_string()));
+    assert_eq!(feed.title, Some("Test Catalog".to_string()));
     assert_eq!(feed.feed_links.len(), 1);
     assert_eq!(feed.feed_links[0].rel, "self");
     assert_eq!(
@@ -160,10 +159,7 @@ fn test_generate_minimal_structures() {
         "http://example.com/book.epub",
     );
 
-    assert_eq!(
-        publication.metadata.common.title,
-        Some("Test Book".to_string())
-    );
+    assert_eq!(publication.metadata.title, Some("Test Book".to_string()));
     assert_eq!(publication.links.len(), 2);
 
     let download_link = publication

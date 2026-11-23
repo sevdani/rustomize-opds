@@ -41,11 +41,9 @@ rustomize-opds = "X.X.X"
 
 ```rust
 use rustomize_opds::opds2::{Parser, Generator, Feed};
-use rustomize_opds::common::CommonMetadata;
 
 // Create a feed
-let metadata = CommonMetadata::new("My OPDS Catalog");
-let feed = Feed::new(metadata, vec![]);
+let feed = Feed::new("My OPDS Catalog", vec![]);
 
 // Generate to JSON
 let generator = Generator::new();

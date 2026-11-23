@@ -7,6 +7,7 @@ use crate::common::{is_valid_currency, OpdsError, ValidationResult};
 
 /// OPDS 1.2 Feed
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename = "feed")]
 pub struct Feed {
     /// Feed identifier
     #[serde(rename = "id")]
@@ -44,6 +45,7 @@ pub struct Feed {
 
 /// OPDS 1.2 Entry
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename = "entry")]
 pub struct Entry {
     /// Entry identifier
     #[serde(rename = "id")]
@@ -97,15 +99,16 @@ pub struct Entry {
 
 /// Author element
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename = "author")]
 pub struct Author {
-    /// Author name
-    pub name: String,
     /// Author URI
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "@uri", skip_serializing_if = "Option::is_none")]
     pub uri: Option<String>,
     /// Author email
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "@email", skip_serializing_if = "Option::is_none")]
     pub email: Option<String>,
+    /// Author name
+    pub name: String,
 }
 
 /// Summary element
@@ -192,29 +195,31 @@ impl Content {
 
 /// Link element (Atom + OPDS extensions)
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename = "link")]
 pub struct Link {
     /// Link relation
-    #[serde(rename = "rel")]
+    #[serde(rename = "@rel")]
     pub rel: String,
     /// Link href
+    #[serde(rename = "@href")]
     pub href: String,
     /// Link type (media type)
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "@type", skip_serializing_if = "Option::is_none")]
     pub type_: Option<String>,
     /// Link hreflang
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "@hreflang", skip_serializing_if = "Option::is_none")]
     pub hreflang: Option<String>,
     /// Link title
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "@title", skip_serializing_if = "Option::is_none")]
     pub title: Option<String>,
     /// Link length
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "@length", skip_serializing_if = "Option::is_none")]
     pub length: Option<u32>,
     /// OPDS facet group attribute
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "@opds_facet_group", skip_serializing_if = "Option::is_none")]
     pub opds_facet_group: Option<String>,
     /// OPDS active facet attribute
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "@opds_active_facet", skip_serializing_if = "Option::is_none")]
     pub opds_active_facet: Option<String>,
     /// OPDS price element
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -271,10 +276,10 @@ impl Link {
 /// Price element
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct Price {
-    #[serde(rename = "$text")]
-    pub value: String,
     #[serde(rename = "currencycode")]
     pub currency_code: String,
+    #[serde(rename = "$text")]
+    pub value: String,
 }
 
 impl Price {

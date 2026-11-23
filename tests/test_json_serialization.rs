@@ -1,15 +1,15 @@
 //! Test JSON serialization field names
 
-use rustomize_opds::common::CommonMetadata;
-use rustomize_opds::opds2::LinkProperties;
+use rustomize_opds::opds2::{LinkProperties, PublicationMetadata};
 
 #[test]
 fn test_pagination_field_serialization() {
-    let metadata = CommonMetadata {
+    let metadata = PublicationMetadata {
         items_per_page: Some(50),
         current_page: Some(1),
         number_of_items: Some(100),
-        ..CommonMetadata::new("Test")
+        title: Some("Test".to_string()),
+        ..PublicationMetadata::default()
     };
 
     let json = serde_json::to_string_pretty(&metadata).unwrap();
@@ -58,7 +58,7 @@ fn test_roundtrip_with_camelcase() {
     // Test that we can deserialize camelCase and serialize to camelCase
     let json = r#"{"title":"Test","itemsPerPage":50,"currentPage":1}"#;
 
-    let metadata: CommonMetadata = serde_json::from_str(json).unwrap();
+    let metadata: PublicationMetadata = serde_json::from_str(json).unwrap();
     assert_eq!(metadata.items_per_page, Some(50));
     assert_eq!(metadata.current_page, Some(1));
 
