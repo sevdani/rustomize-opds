@@ -77,7 +77,7 @@ let parsed_feed = parser.parse_feed(&xml).unwrap();
 
 ## Modules
 
-- `common`: Shared types and utilities for both OPDS versions
+- `common`: Shared utilities and errors for both OPDS versions
 - `opds12`: OPDS 1.2 (Atom/XML) parsing and generation
 - `opds2`: OPDS 2.0 (JSON) parsing and generation
 

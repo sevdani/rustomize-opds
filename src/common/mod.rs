@@ -2,7 +2,6 @@
 
 pub mod error;
 pub mod relations;
-pub mod types;
 pub mod utils;
 
 pub use error::{OpdsError, Result, Validate, ValidationResult};
