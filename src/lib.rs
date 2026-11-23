@@ -21,9 +21,9 @@
 //! // Create a feed
 //! let feed = Feed::new("My OPDS Catalog", vec![]);
 //!
-//! // Generate to JSON
+//! // Generate to JSON (with auto-validation)
 //! let generator = Generator::new();
-//! let json = generator.generate_feed(&feed).unwrap();
+//! let json = generator.generate_and_validate_feed(&feed).unwrap();
 //!
 //! // Parse from JSON
 //! let parser = Parser::new();
@@ -42,9 +42,9 @@
 //!     "http://example.com/opds"
 //! );
 //!
-//! // Generate to XML
+//! // Generate to XML (with auto-validation)
 //! let generator = Generator::new();
-//! let xml = generator.generate_feed(&feed).unwrap();
+//! let xml = generator.generate_and_validate_feed(&feed).unwrap();
 //!
 //! // Parse from XML
 //! let parser = Parser::new();

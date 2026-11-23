@@ -127,7 +127,7 @@ fn test_round_trip_generation() {
 
     // Generate JSON from parsed feed
     let generated_json = generator
-        .generate_feed(&feed)
+        .generate_and_validate_feed(&feed)
         .expect("Failed to generate JSON");
 
     // Parse the generated JSON

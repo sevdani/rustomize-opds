@@ -23,9 +23,9 @@ fn test_generate_parse_minimal_feed() {
     );
     original_feed = original_feed.with_publications(vec![publication]);
 
-    // Generate to JSON
+    // Generate to JSON (with auto-validation)
     let json = generator
-        .generate_feed(&original_feed)
+        .generate_and_validate_feed(&original_feed)
         .expect("Failed to generate JSON");
 
     // Parse back
@@ -80,9 +80,9 @@ fn test_generate_parse_feed_with_publications() {
 
     feed = feed.with_publications(vec![pub1, pub2]);
 
-    // Generate to JSON
+    // Generate to JSON (with auto-validation)
     let json = generator
-        .generate_feed(&feed)
+        .generate_and_validate_feed(&feed)
         .expect("Failed to generate JSON");
 
     // Parse back
@@ -124,9 +124,9 @@ fn test_generate_parse_feed_with_navigation() {
             .with_type("application/opds-publication+json"),
     ]);
 
-    // Generate to JSON
+    // Generate to JSON (with auto-validation)
     let json = generator
-        .generate_feed(&feed)
+        .generate_and_validate_feed(&feed)
         .expect("Failed to generate JSON");
 
     // Parse back
@@ -166,9 +166,9 @@ fn test_generate_parse_feed_with_pagination() {
     );
     feed = feed.with_publications(vec![publication]);
 
-    // Generate to JSON
+    // Generate to JSON (with auto-validation)
     let json = generator
-        .generate_feed(&feed)
+        .generate_and_validate_feed(&feed)
         .expect("Failed to generate JSON");
 
     // Verify pagination field names in JSON
@@ -230,9 +230,9 @@ fn test_generate_parse_publication_with_link_properties() {
     let acquisition_link = acquisition_link.with_properties(properties);
     pub_ = pub_.with_link(acquisition_link);
 
-    // Generate to JSON
+    // Generate to JSON (with auto-validation)
     let json = generator
-        .generate_publication(&pub_)
+        .generate_and_validate_publication(&pub_)
         .expect("Failed to generate JSON");
 
     // Parse back
@@ -288,9 +288,9 @@ fn test_generate_parse_publication_with_availability() {
 
     pub_ = pub_.with_link(acquisition_link);
 
-    // Generate to JSON
+    // Generate to JSON (with auto-validation)
     let json = generator
-        .generate_publication(&pub_)
+        .generate_and_validate_publication(&pub_)
         .expect("Failed to generate JSON");
 
     // Parse back
@@ -350,9 +350,9 @@ fn test_generate_parse_publication_with_holds_and_copies() {
 
     pub_ = pub_.with_link(acquisition_link);
 
-    // Generate to JSON
+    // Generate to JSON (with auto-validation)
     let json = generator
-        .generate_publication(&pub_)
+        .generate_and_validate_publication(&pub_)
         .expect("Failed to generate JSON");
 
     // Parse back
@@ -404,7 +404,7 @@ fn test_validation_fails_on_missing_title() {
     // Add acquisition link
     pub_ = pub_.with_link(Link::new("acquisition", "http://example.com/book.epub"));
 
-    // Generate to JSON
+    // Generate to JSON (with validate=false to generate invalid data)
     let json = generator
         .generate_publication(&pub_)
         .expect("Failed to generate JSON");
@@ -431,7 +431,7 @@ fn test_validation_fails_on_missing_acquisition_link() {
             .with_type("application/opds-publication+json")],
     );
 
-    // Generate to JSON
+    // Generate to JSON (with validate=false to generate invalid data)
     let json = generator
         .generate_publication(&pub_)
         .expect("Failed to generate JSON");
@@ -475,7 +475,7 @@ fn test_validation_fails_on_negative_price() {
 
     pub_ = pub_.with_link(acquisition_link);
 
-    // Generate to JSON
+    // Generate to JSON (with validate=false to generate invalid data)
     let json = generator
         .generate_publication(&pub_)
         .expect("Failed to generate JSON");
@@ -523,9 +523,9 @@ fn test_nested_indirect_acquisition_round_trip() {
 
     pub_ = pub_.with_link(acquisition_link);
 
-    // Generate to JSON
+    // Generate to JSON (with auto-validation)
     let json = generator
-        .generate_publication(&pub_)
+        .generate_and_validate_publication(&pub_)
         .expect("Failed to generate JSON");
 
     // Parse back
@@ -624,9 +624,9 @@ fn test_round_trip_with_all_fields() {
             }),
     );
 
-    // Generate to JSON
+    // Generate to JSON (with auto-validation)
     let json = generator
-        .generate_publication(&pub_)
+        .generate_and_validate_publication(&pub_)
         .expect("Failed to generate JSON");
 
     // Parse back

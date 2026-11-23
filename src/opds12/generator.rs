@@ -2,7 +2,7 @@
 
 use std::io::Write;
 
-use crate::common::error::Result;
+use crate::common::error::{OpdsError, Result, ValidationResult};
 use crate::opds12::{Feed, IndirectAcquisition, Link, Price};
 
 /// OPDS 1.2 Generator
@@ -16,7 +16,7 @@ impl Generator {
 
     /// Generate OPDS 1.2 feed to XML string
     pub fn generate_feed(&self, feed: &Feed) -> Result<String> {
-        serde_xml_rs::to_string(feed).map_err(crate::common::error::OpdsError::Xml)
+        serde_xml_rs::to_string(feed).map_err(OpdsError::Xml)
     }
 
     /// Generate OPDS 1.2 feed to writer
@@ -24,6 +24,25 @@ impl Generator {
         let xml = serde_xml_rs::to_string(feed)?;
         writer.write_all(xml.as_bytes())?;
         Ok(())
+    }
+
+    /// Generate OPDS 1.2 feed to XML string with auto-validation
+    pub fn generate_and_validate_feed(&self, feed: &Feed) -> Result<String> {
+        feed.validate()?;
+        serde_xml_rs::to_string(feed).map_err(OpdsError::Xml)
+    }
+
+    /// Generate OPDS 1.2 feed to writer with auto-validation
+    pub fn generate_and_validate_feed_to_writer<W: Write>(&self, feed: &Feed, mut writer: W) -> Result<()> {
+        feed.validate()?;
+        let xml = serde_xml_rs::to_string(feed)?;
+        writer.write_all(xml.as_bytes())?;
+        Ok(())
+    }
+
+    /// Validate a parsed feed
+    pub fn validate_feed(&self, feed: &Feed) -> ValidationResult {
+        feed.validate()
     }
 
     /// Generate a minimal OPDS 1.2 feed with a self link
@@ -159,6 +178,7 @@ impl LinkWithProperties for Link {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::opds12::{Entry, Feed, Link};
 
     #[test]
     fn test_generator_new() {
@@ -217,5 +237,106 @@ mod tests {
             feed.links[0].type_,
             Some("application/atom+xml;profile=opds-catalog;kind=navigation".to_string())
         );
+    }
+
+    #[test]
+    fn test_generate_feed_without_validation() {
+        let generator = Generator::new();
+        let feed = Generator::generate_minimal_feed(
+            "urn:uuid:123",
+            "Test Feed",
+            "http://example.com/feed.xml",
+        );
+
+        // Generate without validation
+        let xml = generator.generate_feed(&feed);
+        assert!(xml.is_ok());
+    }
+
+    #[test]
+    fn test_generate_feed_with_validation() {
+        let generator = Generator::new();
+        let feed = Generator::generate_minimal_feed(
+            "urn:uuid:123",
+            "Test Feed",
+            "http://example.com/feed.xml",
+        );
+
+        // Generate with validation
+        let xml = generator.generate_and_validate_feed(&feed);
+        assert!(xml.is_ok());
+    }
+
+    #[test]
+    fn test_generate_feed_validation_fails() {
+        let generator = Generator::new();
+
+        // Create invalid feed with empty ID
+        let mut feed = Feed::new("", "Test Feed");
+        let mut entry = Entry::new("urn:uuid:test", "Test Entry");
+        entry.links.push(Link::new(
+            "http://opds-spec.org/acquisition",
+            "http://example.com/book.epub",
+        ));
+        feed.entries.push(entry);
+
+        // Generate with validation should fail
+        let xml = generator.generate_and_validate_feed(&feed);
+        assert!(xml.is_err());
+        assert!(xml.unwrap_err().to_string().contains("id cannot be empty"));
+    }
+
+    #[test]
+    fn test_generate_feed_to_writer_without_validation() {
+        let generator = Generator::new();
+        let feed = Generator::generate_minimal_feed(
+            "urn:uuid:123",
+            "Test Feed",
+            "http://example.com/feed.xml",
+        );
+
+        let mut output = Vec::new();
+        let result = generator.generate_feed_to_writer(&feed, &mut output);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_generate_feed_to_writer_with_validation() {
+        let generator = Generator::new();
+        let feed = Generator::generate_minimal_feed(
+            "urn:uuid:123",
+            "Test Feed",
+            "http://example.com/feed.xml",
+        );
+
+        let mut output = Vec::new();
+        let result = generator.generate_and_validate_feed_to_writer(&feed, &mut output);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_generate_feed_to_writer_validation_fails() {
+        let generator = Generator::new();
+
+        let mut feed = Feed::new("urn:uuid:test", "");
+        let mut entry = Entry::new("urn:uuid:test", "Test Entry");
+        entry.links.push(Link::new(
+            "http://opds-spec.org/acquisition",
+            "http://example.com/book.epub",
+        ));
+        feed.entries.push(entry);
+
+        let mut output = Vec::new();
+        let result = generator.generate_and_validate_feed_to_writer(&feed, &mut output);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("title cannot be empty"));
+    }
+
+    #[test]
+    fn test_validate_feed() {
+        let generator = Generator::new();
+        let feed = Feed::new("urn:uuid:123", "Test Feed");
+
+        assert!(generator.validate_feed(&feed).is_ok());
     }
 }

@@ -13,9 +13,9 @@ fn test_generate_parse_minimal_feed() {
         "http://example.com/feed.xml",
     );
 
-    // Generate to XML
+    // Generate to XML (with auto-validation)
     let xml = generator
-        .generate_feed(&original_feed)
+        .generate_and_validate_feed(&original_feed)
         .expect("Failed to generate XML");
 
     // Parse back
@@ -81,9 +81,9 @@ fn test_generate_parse_complex_feed_with_authors() {
     );
     feed.entries.push(entry);
 
-    // Generate to XML
+    // Generate to XML (with auto-validation)
     let xml = generator
-        .generate_feed(&feed)
+        .generate_and_validate_feed(&feed)
         .expect("Failed to generate XML");
 
     // Parse back
@@ -141,9 +141,9 @@ fn test_generate_parse_feed_with_nested_indirect_acquisition() {
     entry.links.push(link);
     feed.entries.push(entry);
 
-    // Generate to XML
+    // Generate to XML (with auto-validation)
     let xml = generator
-        .generate_feed(&feed)
+        .generate_and_validate_feed(&feed)
         .expect("Failed to generate XML");
 
     // Parse back
@@ -195,9 +195,9 @@ fn test_generate_parse_feed_with_multiple_entries() {
         feed.entries.push(entry);
     }
 
-    // Generate to XML
+    // Generate to XML (with auto-validation)
     let xml = generator
-        .generate_feed(&feed)
+        .generate_and_validate_feed(&feed)
         .expect("Failed to generate XML");
 
     // Parse back
@@ -236,7 +236,7 @@ fn test_validation_fails_on_empty_id() {
     );
     feed.entries.push(entry);
 
-    // Generate to XML (generation succeeds)
+    // Generate to XML (without validation to generate invalid data)
     let xml = generator
         .generate_feed(&feed)
         .expect("Failed to generate XML");
@@ -263,7 +263,7 @@ fn test_validation_fails_on_missing_acquisition_link() {
         .push(Link::new("self", "http://example.com/entry.xml"));
     feed.entries.push(entry);
 
-    // Generate to XML
+    // Generate to XML (without validation to generate invalid data)
     let xml = generator
         .generate_feed(&feed)
         .expect("Failed to generate XML");
@@ -302,7 +302,7 @@ fn test_nested_indirect_acquisition_validation() {
     entry.links.push(link);
     feed.entries.push(entry);
 
-    // Generate to XML
+    // Generate to XML (without validation to generate invalid data)
     let xml = generator
         .generate_feed(&feed)
         .expect("Failed to generate XML");
@@ -358,9 +358,9 @@ fn test_round_trip_field_by_field_validation() {
     entry.links.push(original_link.clone());
     feed.entries.push(entry);
 
-    // Generate to XML
+    // Generate to XML (with auto-validation)
     let xml = generator
-        .generate_feed(&feed)
+        .generate_and_validate_feed(&feed)
         .expect("Failed to generate XML");
 
     // Parse back

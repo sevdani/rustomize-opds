@@ -2,7 +2,7 @@
 
 use std::io::Write;
 
-use crate::common::error::Result;
+use crate::common::error::{OpdsError, Result, ValidationResult};
 use crate::opds2::{Feed, Publication};
 
 /// OPDS 2.0 Generator
@@ -17,10 +17,7 @@ impl Generator {
     /// Generate OPDS 2.0 feed to JSON string
     pub fn generate_feed(&self, feed: &Feed) -> Result<String> {
         serde_json::to_string_pretty(feed).map_err(|e| {
-            crate::common::error::OpdsError::Custom(format!(
-                "Failed to generate OPDS 2.0 feed: {}",
-                e
-            ))
+            OpdsError::Custom(format!("Failed to generate OPDS 2.0 feed: {}", e))
         })
     }
 
@@ -34,22 +31,57 @@ impl Generator {
     /// Generate OPDS 2.0 publication to JSON string
     pub fn generate_publication(&self, pub_: &Publication) -> Result<String> {
         serde_json::to_string_pretty(pub_).map_err(|e| {
-            crate::common::error::OpdsError::Custom(format!(
-                "Failed to generate OPDS 2.0 publication: {}",
-                e
-            ))
+            OpdsError::Custom(format!("Failed to generate OPDS 2.0 publication: {}", e))
         })
     }
 
     /// Generate OPDS 2.0 publication to writer
-    pub fn generate_publication_to_writer<W: Write>(
-        &self,
-        pub_: &Publication,
-        mut writer: W,
-    ) -> Result<()> {
+    pub fn generate_publication_to_writer<W: Write>(&self, pub_: &Publication, mut writer: W) -> Result<()> {
         let json = serde_json::to_string_pretty(pub_)?;
         writer.write_all(json.as_bytes())?;
         Ok(())
+    }
+
+    /// Generate OPDS 2.0 feed to JSON string with auto-validation
+    pub fn generate_and_validate_feed(&self, feed: &Feed) -> Result<String> {
+        feed.validate()?;
+        serde_json::to_string_pretty(feed).map_err(|e| {
+            OpdsError::Custom(format!("Failed to generate OPDS 2.0 feed: {}", e))
+        })
+    }
+
+    /// Generate OPDS 2.0 feed to writer with auto-validation
+    pub fn generate_and_validate_feed_to_writer<W: Write>(&self, feed: &Feed, mut writer: W) -> Result<()> {
+        feed.validate()?;
+        let json = serde_json::to_string_pretty(feed)?;
+        writer.write_all(json.as_bytes())?;
+        Ok(())
+    }
+
+    /// Generate OPDS 2.0 publication to JSON string with auto-validation
+    pub fn generate_and_validate_publication(&self, pub_: &Publication) -> Result<String> {
+        pub_.validate()?;
+        serde_json::to_string_pretty(pub_).map_err(|e| {
+            OpdsError::Custom(format!("Failed to generate OPDS 2.0 publication: {}", e))
+        })
+    }
+
+    /// Generate OPDS 2.0 publication to writer with auto-validation
+    pub fn generate_and_validate_publication_to_writer<W: Write>(&self, pub_: &Publication, mut writer: W) -> Result<()> {
+        pub_.validate()?;
+        let json = serde_json::to_string_pretty(pub_)?;
+        writer.write_all(json.as_bytes())?;
+        Ok(())
+    }
+
+    /// Validate a parsed feed
+    pub fn validate_feed(&self, feed: &Feed) -> ValidationResult {
+        feed.validate()
+    }
+
+    /// Validate a parsed publication
+    pub fn validate_publication(&self, pub_: &Publication) -> ValidationResult {
+        pub_.validate()
     }
 
     /// Generate a minimal OPDS 2.0 feed
@@ -158,6 +190,7 @@ impl PublicationWithLink for crate::opds2::Publication {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::opds2::{Feed, Link, Publication, PublicationMetadata};
 
     #[test]
     fn test_generator_new() {
@@ -197,7 +230,15 @@ mod tests {
         let generator = Generator::new();
         let feed = Generator::generate_minimal_feed("Test Feed", "http://example.com/feed.json");
 
-        let json = generator.generate_feed(&feed).unwrap();
+        // Add publications to make it a valid OPDS 2.0 feed
+        let publication = Generator::generate_minimal_publication(
+            "Test Publication",
+            "http://example.com/pub.json",
+            "http://example.com/book.epub",
+        );
+        let feed = feed.with_publications(vec![publication]);
+
+        let json = generator.generate_and_validate_feed(&feed).unwrap();
         // Check for the title in the JSON output
         assert!(json.contains("Test Feed"));
         assert!(json.contains("\"self\""));
@@ -212,8 +253,186 @@ mod tests {
             "http://example.com/book.epub",
         );
 
-        let json = generator.generate_publication(&publication).unwrap();
+        let json = generator.generate_and_validate_publication(&publication).unwrap();
         // Check for the title in the JSON output
         assert!(json.contains("Test Publication"));
+    }
+
+    #[test]
+    fn test_generate_feed_without_validation() {
+        let generator = Generator::new();
+
+        let publication = Generator::generate_minimal_publication(
+            "Test Publication",
+            "http://example.com/pub.json",
+            "http://example.com/book.epub",
+        );
+        let feed = Generator::generate_minimal_feed("Test Feed", "http://example.com/feed.json")
+            .with_publications(vec![publication]);
+
+        let json = generator.generate_feed(&feed);
+        assert!(json.is_ok());
+    }
+
+    #[test]
+    fn test_generate_feed_with_validation() {
+        let generator = Generator::new();
+
+        let publication = Generator::generate_minimal_publication(
+            "Test Publication",
+            "http://example.com/pub.json",
+            "http://example.com/book.epub",
+        );
+        let feed = Generator::generate_minimal_feed("Test Feed", "http://example.com/feed.json")
+            .with_publications(vec![publication]);
+
+        let json = generator.generate_and_validate_feed(&feed);
+        assert!(json.is_ok());
+    }
+
+    #[test]
+    fn test_generate_feed_validation_fails() {
+        let generator = Generator::new();
+
+        // Create invalid feed without publications (required for OPDS 2.0)
+        let feed = Feed::new("Test Feed", vec![Link::new("self", "http://example.com/feed.json")]);
+
+        let json = generator.generate_and_validate_feed(&feed);
+        assert!(json.is_err());
+        assert!(
+            json.unwrap_err().to_string().contains("navigation, publications, or groups")
+        );
+    }
+
+    #[test]
+    fn test_generate_publication_without_validation() {
+        let generator = Generator::new();
+        let publication = Generator::generate_minimal_publication(
+            "Test Publication",
+            "http://example.com/pub.json",
+            "http://example.com/book.epub",
+        );
+
+        let json = generator.generate_publication(&publication);
+        assert!(json.is_ok());
+    }
+
+    #[test]
+    fn test_generate_publication_with_validation() {
+        let generator = Generator::new();
+        let publication = Generator::generate_minimal_publication(
+            "Test Publication",
+            "http://example.com/pub.json",
+            "http://example.com/book.epub",
+        );
+
+        let json = generator.generate_and_validate_publication(&publication);
+        assert!(json.is_ok());
+    }
+
+    #[test]
+    fn test_generate_publication_validation_fails() {
+        let generator = Generator::new();
+
+        // Create invalid publication without acquisition link
+        let metadata = PublicationMetadata::new("Test Publication");
+        let publication = Publication::new(metadata, vec![Link::new("self", "http://example.com")]);
+
+        let json = generator.generate_and_validate_publication(&publication);
+        assert!(json.is_err());
+        assert!(
+            json.unwrap_err()
+                .to_string()
+                .contains("acquisition link")
+        );
+    }
+
+    #[test]
+    fn test_generate_feed_to_writer_without_validation() {
+        let generator = Generator::new();
+
+        let publication = Generator::generate_minimal_publication(
+            "Test Publication",
+            "http://example.com/pub.json",
+            "http://example.com/book.epub",
+        );
+        let feed = Generator::generate_minimal_feed("Test Feed", "http://example.com/feed.json")
+            .with_publications(vec![publication]);
+
+        let mut output = Vec::new();
+        let result = generator.generate_feed_to_writer(&feed, &mut output);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_generate_feed_to_writer_with_validation() {
+        let generator = Generator::new();
+
+        let publication = Generator::generate_minimal_publication(
+            "Test Publication",
+            "http://example.com/pub.json",
+            "http://example.com/book.epub",
+        );
+        let feed = Generator::generate_minimal_feed("Test Feed", "http://example.com/feed.json")
+            .with_publications(vec![publication]);
+
+        let mut output = Vec::new();
+        let result = generator.generate_and_validate_feed_to_writer(&feed, &mut output);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_generate_publication_to_writer_without_validation() {
+        let generator = Generator::new();
+        let publication = Generator::generate_minimal_publication(
+            "Test Publication",
+            "http://example.com/pub.json",
+            "http://example.com/book.epub",
+        );
+
+        let mut output = Vec::new();
+        let result = generator.generate_publication_to_writer(&publication, &mut output);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_generate_publication_to_writer_with_validation() {
+        let generator = Generator::new();
+        let publication = Generator::generate_minimal_publication(
+            "Test Publication",
+            "http://example.com/pub.json",
+            "http://example.com/book.epub",
+        );
+
+        let mut output = Vec::new();
+        let result = generator.generate_and_validate_publication_to_writer(&publication, &mut output);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_validate_feed() {
+        let generator = Generator::new();
+
+        let publication = Generator::generate_minimal_publication(
+            "Test Publication",
+            "http://example.com/pub.json",
+            "http://example.com/book.epub",
+        );
+        let feed = Generator::generate_minimal_feed("Test Feed", "http://example.com/feed.json")
+            .with_publications(vec![publication]);
+
+        assert!(generator.validate_feed(&feed).is_ok());
+    }
+
+    #[test]
+    fn test_validate_publication() {
+        let generator = Generator::new();
+        let publication = Generator::generate_minimal_publication(
+            "Test Publication",
+            "http://example.com/pub.json",
+            "http://example.com/book.epub",
+        );
+
+        assert!(generator.validate_publication(&publication).is_ok());
     }
 }
