@@ -1,6 +1,6 @@
 [package]
 name = "rustomize-opds"
-version = "1.2.0"
+version = "1.2.1"
 edition = "2021"
 description = "OPDS parser and generator library supporting OPDS 1.2 and OPDS 2.0"
 license = "MIT"
