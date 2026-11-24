@@ -18,7 +18,7 @@ fn test_parse_minimal_opds12_feed() {
     assert_eq!(feed.title, "Minimal OPDS 1.2 Feed");
 
     // Verify updated date is set
-    assert!(feed.updated.timestamp() > 0);
+    assert!(feed.updated.is_some_and(|t| t.timestamp() > 0));
 
     // Verify link is present
     assert!(!feed.links.is_empty());

@@ -114,7 +114,7 @@ impl Generator {
             .with_type("application/opds-publication+json");
         let download_link = crate::opds2::Link::new("download", download_href);
 
-        Publication::new(metadata, vec![self_link, download_link])
+        Publication::new(metadata, Some(vec![self_link, download_link]))
     }
 }
 
@@ -192,7 +192,10 @@ pub trait PublicationWithLink {
 
 impl PublicationWithLink for crate::opds2::Publication {
     fn with_link(mut self, link: crate::opds2::Link) -> Self {
-        self.links.push(link);
+        if self.links.is_none() {
+            self.links = Some(vec![]);
+        }
+        self.links.as_mut().unwrap().push(link);
         self
     }
 }
@@ -230,9 +233,10 @@ mod tests {
             publication.metadata.title,
             Some("Test Publication".to_string())
         );
-        assert_eq!(publication.links.len(), 2);
-        assert_eq!(publication.links[0].rel, "self");
-        assert_eq!(publication.links[1].rel, "download");
+        let links = publication.links.as_ref().unwrap();
+        assert_eq!(links.len(), 2);
+        assert_eq!(links[0].rel, "self");
+        assert_eq!(links[1].rel, "download");
     }
 
     #[test]
@@ -352,7 +356,10 @@ mod tests {
 
         // Create invalid publication without acquisition link
         let metadata = PublicationMetadata::new("Test Publication");
-        let publication = Publication::new(metadata, vec![Link::new("self", "http://example.com")]);
+        let publication = Publication::new(
+            metadata,
+            Some(vec![Link::new("self", "http://example.com")]),
+        );
 
         let json = generator.generate_and_validate_publication(&publication);
         assert!(json.is_err());

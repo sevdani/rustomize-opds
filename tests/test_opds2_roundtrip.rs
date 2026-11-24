@@ -97,7 +97,7 @@ fn test_generate_parse_feed_with_publications() {
     // Validate first publication
     let pub1_parsed = &publications[0];
     assert_eq!(pub1_parsed.metadata.title, Some("Book One".to_string()));
-    assert_eq!(pub1_parsed.links.len(), 2);
+    assert_eq!(pub1_parsed.links.as_ref().unwrap().len(), 2);
 
     // Validate parsed feed
     parser
@@ -199,8 +199,8 @@ fn test_generate_parse_publication_with_link_properties() {
     let metadata = PublicationMetadata::new("Publication with Properties");
     let mut pub_ = Publication::new(
         metadata,
-        vec![Link::new("self", "http://example.com/pub.json")
-            .with_type("application/opds-publication+json")],
+        Some(vec![Link::new("self", "http://example.com/pub.json")
+            .with_type("application/opds-publication+json")]),
     );
 
     // Add acquisition link with properties
@@ -242,7 +242,7 @@ fn test_generate_parse_publication_with_link_properties() {
         .expect("Failed to parse publication");
 
     // Validate link properties
-    let parsed_link = &parsed_pub.links[1]; // acquisition link
+    let parsed_link = &parsed_pub.links.as_ref().unwrap()[1]; // acquisition link
     assert!(parsed_link.properties.is_some());
 
     let props = parsed_link.properties.as_ref().unwrap();
@@ -268,8 +268,8 @@ fn test_generate_parse_publication_with_availability() {
     let metadata = PublicationMetadata::new("Publication with Availability");
     let mut pub_ = Publication::new(
         metadata,
-        vec![Link::new("self", "http://example.com/pub.json")
-            .with_type("application/opds-publication+json")],
+        Some(vec![Link::new("self", "http://example.com/pub.json")
+            .with_type("application/opds-publication+json")]),
     );
 
     // Add acquisition link with availability
@@ -300,7 +300,7 @@ fn test_generate_parse_publication_with_availability() {
         .expect("Failed to parse publication");
 
     // Validate availability
-    let parsed_link = &parsed_pub.links[1];
+    let parsed_link = &parsed_pub.links.as_ref().unwrap()[1];
     assert!(parsed_link.properties.is_some());
 
     let availability = parsed_link
@@ -327,8 +327,8 @@ fn test_generate_parse_publication_with_holds_and_copies() {
     let metadata = PublicationMetadata::new("Publication with Library Features");
     let mut pub_ = Publication::new(
         metadata,
-        vec![Link::new("self", "http://example.com/pub.json")
-            .with_type("application/opds-publication+json")],
+        Some(vec![Link::new("self", "http://example.com/pub.json")
+            .with_type("application/opds-publication+json")]),
     );
 
     // Add acquisition link with holds and copies
@@ -362,7 +362,7 @@ fn test_generate_parse_publication_with_holds_and_copies() {
         .expect("Failed to parse publication");
 
     // Validate holds
-    let parsed_link = &parsed_pub.links[1];
+    let parsed_link = &parsed_pub.links.as_ref().unwrap()[1];
     let holds = parsed_link
         .properties
         .as_ref()
@@ -397,8 +397,8 @@ fn test_validation_fails_on_missing_title() {
     // Create publication with missing title
     let mut pub_ = Publication::new(
         PublicationMetadata::default(),
-        vec![Link::new("self", "http://example.com/pub.json")
-            .with_type("application/opds-publication+json")],
+        Some(vec![Link::new("self", "http://example.com/pub.json")
+            .with_type("application/opds-publication+json")]),
     );
 
     // Add acquisition link
@@ -427,8 +427,8 @@ fn test_validation_fails_on_missing_acquisition_link() {
     let metadata = PublicationMetadata::new("Publication No Acquisition");
     let pub_ = Publication::new(
         metadata,
-        vec![Link::new("self", "http://example.com/pub.json")
-            .with_type("application/opds-publication+json")],
+        Some(vec![Link::new("self", "http://example.com/pub.json")
+            .with_type("application/opds-publication+json")]),
     );
 
     // Generate to JSON (with validate=false to generate invalid data)
@@ -457,8 +457,8 @@ fn test_validation_fails_on_negative_price() {
     let metadata = PublicationMetadata::new("Publication Negative Price");
     let mut pub_ = Publication::new(
         metadata,
-        vec![Link::new("self", "http://example.com/pub.json")
-            .with_type("application/opds-publication+json")],
+        Some(vec![Link::new("self", "http://example.com/pub.json")
+            .with_type("application/opds-publication+json")]),
     );
 
     let properties = LinkProperties {
@@ -498,8 +498,8 @@ fn test_nested_indirect_acquisition_round_trip() {
     let metadata = PublicationMetadata::new("Publication Nested Acq");
     let mut pub_ = Publication::new(
         metadata,
-        vec![Link::new("self", "http://example.com/pub.json")
-            .with_type("application/opds-publication+json")],
+        Some(vec![Link::new("self", "http://example.com/pub.json")
+            .with_type("application/opds-publication+json")]),
     );
 
     // Add nested indirect acquisition (Adobe DRM chain)
@@ -535,7 +535,8 @@ fn test_nested_indirect_acquisition_round_trip() {
         .expect("Failed to parse publication");
 
     // Validate nested indirect acquisition
-    let parsed_link = &parsed_pub.links[1];
+    let links = parsed_pub.links.as_ref().unwrap();
+    let parsed_link = &links[1];
     let acquisitions = parsed_link
         .properties
         .as_ref()
@@ -593,9 +594,9 @@ fn test_round_trip_with_all_fields() {
 
     let mut pub_ = Publication::new(
         metadata,
-        vec![Link::new("self", "http://example.com/pub.json")
+        Some(vec![Link::new("self", "http://example.com/pub.json")
             .with_type("application/opds-publication+json")
-            .with_title("Self Link")],
+            .with_title("Self Link")]),
     );
 
     // Add multiple links with various properties
@@ -654,7 +655,8 @@ fn test_round_trip_with_all_fields() {
     );
 
     // Validate links
-    assert_eq!(parsed_pub.links.len(), 3);
+    let links = parsed_pub.links.as_ref().unwrap();
+    assert_eq!(links.len(), 3);
 
     // Validate parsed publication
     parser

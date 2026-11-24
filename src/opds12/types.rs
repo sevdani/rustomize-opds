@@ -5,6 +5,12 @@ use serde::{Deserialize, Serialize};
 
 use crate::common::{is_valid_currency, OpdsError, ValidationResult};
 
+/// Default datetime helper function for serde default
+#[allow(dead_code)]
+fn default_datetime() -> DateTime<Utc> {
+    Utc::now()
+}
+
 /// OPDS 1.2 Feed
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename = "feed")]
@@ -15,8 +21,8 @@ pub struct Feed {
     /// Feed title
     pub title: String,
     /// Updated date
-    #[serde(rename = "updated")]
-    pub updated: DateTime<Utc>,
+    #[serde(rename = "updated", skip_serializing_if = "Option::is_none")]
+    pub updated: Option<DateTime<Utc>>,
     /// Feed authors
     #[serde(default, rename = "author")]
     pub authors: Vec<Author>,
@@ -53,8 +59,8 @@ pub struct Entry {
     /// Entry title
     pub title: String,
     /// Updated date
-    #[serde(rename = "updated")]
-    pub updated: DateTime<Utc>,
+    #[serde(rename = "updated", skip_serializing_if = "Option::is_none")]
+    pub updated: Option<DateTime<Utc>>,
     /// Entry authors
     #[serde(default, rename = "author")]
     pub authors: Vec<Author>,
@@ -368,7 +374,7 @@ impl Feed {
         Self {
             id: id.into(),
             title: title.into(),
-            updated: Utc::now(),
+            updated: Some(Utc::now()),
             authors: Vec::new(),
             links: Vec::new(),
             entries: Vec::new(),
@@ -382,6 +388,9 @@ impl Feed {
 
     /// Validate the feed
     pub fn validate(&self) -> ValidationResult {
+        if self.updated.is_none() {
+            return Err(OpdsError::MissingField("updated".to_string()));
+        }
         if self.id.is_empty() {
             return Err(OpdsError::Validation("feed id cannot be empty".to_string()));
         }
@@ -411,7 +420,7 @@ impl Entry {
         Self {
             id: id.into(),
             title: title.into(),
-            updated: Utc::now(),
+            updated: Some(Utc::now()),
             authors: Vec::new(),
             links: Vec::new(),
             summary: None,
@@ -433,6 +442,9 @@ impl Entry {
 
     /// Validate the entry
     pub fn validate(&self) -> ValidationResult {
+        if self.updated.is_none() {
+            return Err(OpdsError::MissingField("updated".to_string()));
+        }
         if self.id.is_empty() {
             return Err(OpdsError::Validation(
                 "entry id cannot be empty".to_string(),

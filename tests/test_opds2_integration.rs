@@ -93,6 +93,8 @@ fn test_parse_full_opds2_feed() {
     // Verify links with properties
     let acquisition_link = pub_
         .links
+        .as_ref()
+        .unwrap()
         .iter()
         .find(|l| l.rel == "acquisition")
         .expect("Should have acquisition link");
@@ -160,10 +162,12 @@ fn test_generate_minimal_structures() {
     );
 
     assert_eq!(publication.metadata.title, Some("Test Book".to_string()));
-    assert_eq!(publication.links.len(), 2);
+    assert_eq!(publication.links.as_ref().unwrap().len(), 2);
 
     let download_link = publication
         .links
+        .as_ref()
+        .unwrap()
         .iter()
         .find(|l| l.rel == "download")
         .expect("Should have download link");

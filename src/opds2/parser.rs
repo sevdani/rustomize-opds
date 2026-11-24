@@ -95,8 +95,7 @@ mod tests {
         let publications = vec![];
         let self_link = crate::opds2::Link::new("self", "http://example.com/feed.json")
             .with_type("application/opds+json");
-        let feed =
-            crate::opds2::Feed::new("Test Feed", vec![self_link]).with_publications(publications);
+        let feed = Feed::new("Test Feed", vec![self_link]).with_publications(publications);
         let json = serde_json::to_string_pretty(&feed).unwrap();
 
         assert!(parser.parse_feed(&json).is_ok());
@@ -110,8 +109,7 @@ mod tests {
         let publications = vec![];
         let self_link = crate::opds2::Link::new("self", "http://example.com/feed.json")
             .with_type("application/opds+json");
-        let feed =
-            crate::opds2::Feed::new("Test Feed", vec![self_link]).with_publications(publications);
+        let feed = Feed::new("Test Feed", vec![self_link]).with_publications(publications);
         let json = serde_json::to_string_pretty(&feed).unwrap();
 
         assert!(parser.parse_and_validate_feed(&json).is_ok());
@@ -120,12 +118,12 @@ mod tests {
     #[test]
     fn test_parse_publication() {
         let parser = Parser::new();
-        let publication = crate::opds2::Publication::new(
+        let publication = Publication::new(
             crate::opds2::PublicationMetadata::new("Test Publication"),
-            vec![
+            Some(vec![
                 crate::opds2::Link::new("self", "http://example.com"),
                 crate::opds2::Link::new("download", "http://example.com/book.epub"),
-            ],
+            ]),
         );
         let json = serde_json::to_string_pretty(&publication).unwrap();
 
@@ -135,12 +133,12 @@ mod tests {
     #[test]
     fn test_parse_and_validate_publication() {
         let parser = Parser::new();
-        let publication = crate::opds2::Publication::new(
+        let publication = Publication::new(
             crate::opds2::PublicationMetadata::new("Test Publication"),
-            vec![
+            Some(vec![
                 crate::opds2::Link::new("self", "http://example.com"),
                 crate::opds2::Link::new("download", "http://example.com/book.epub"),
-            ],
+            ]),
         );
         let json = serde_json::to_string_pretty(&publication).unwrap();
 
@@ -164,10 +162,10 @@ mod tests {
         use crate::opds2::{Link, Publication, PublicationMetadata};
         let publication = Publication::new(
             PublicationMetadata::new("Test Publication"),
-            vec![
+            Some(vec![
                 Link::new("self", "http://example.com"),
                 Link::new("download", "http://example.com/book.epub"),
-            ],
+            ]),
         );
 
         assert!(parser.validate_publication(&publication).is_ok());

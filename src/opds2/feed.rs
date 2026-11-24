@@ -115,8 +115,8 @@ pub struct Facet {
     )]
     pub number_of_items: Option<u32>,
     /// Facet links (required)
-    #[serde(rename = "links")]
-    pub links: Vec<Link>,
+    #[serde(rename = "links", skip_serializing_if = "Option::is_none")]
+    pub links: Option<Vec<Link>>,
     /// Images collection
     #[serde(skip_serializing_if = "Option::is_none")]
     pub images: Option<Vec<Link>>,
@@ -286,7 +286,7 @@ impl Validate for Feed {
 
 impl Facet {
     /// Create a new facet
-    pub fn new(title: impl Into<String>, links: Vec<Link>) -> Self {
+    pub fn new(title: impl Into<String>, links: Option<Vec<Link>>) -> Self {
         Self {
             identifier: None,
             type_: None,
@@ -310,8 +310,14 @@ impl Facet {
             ));
         }
 
-        // Links must have at least one item (minItems: 1)
-        if self.links.is_empty() {
+        // Links must be present and have at least one item (minItems: 1)
+        if self.links.is_none() {
+            return Err(crate::common::error::OpdsError::MissingField(
+                "links".to_string(),
+            ));
+        }
+        let links = self.links.as_ref().unwrap();
+        if links.is_empty() {
             return Err(crate::common::error::OpdsError::Validation(
                 "Facet must contain at least one link".to_string(),
             ));

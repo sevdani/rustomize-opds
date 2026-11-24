@@ -12,8 +12,8 @@ pub struct Publication {
     /// Publication metadata
     pub metadata: PublicationMetadata,
     /// Publication links (must contain at least one acquisition link)
-    #[serde(rename = "links")]
-    pub links: Vec<Link>,
+    #[serde(rename = "links", skip_serializing_if = "Option::is_none")]
+    pub links: Option<Vec<Link>>,
     /// Images collection
     #[serde(skip_serializing_if = "Option::is_none")]
     pub images: Option<Vec<Link>>,
@@ -156,7 +156,7 @@ impl Default for PublicationMetadata {
 
 impl Publication {
     /// Create a new publication
-    pub fn new(metadata: PublicationMetadata, links: Vec<Link>) -> Self {
+    pub fn new(metadata: PublicationMetadata, links: Option<Vec<Link>>) -> Self {
         Self {
             metadata,
             links,
@@ -189,12 +189,18 @@ impl Publication {
         }
 
         // Must have at least one acquisition link
-        let has_acquisition = self.links.iter().any(|l| {
-            matches!(
-                l.rel.as_str(),
-                "acquisition" | "borrow" | "buy" | "download" | "preview" | "subscribe"
-            ) || l.rel.starts_with("http://opds-spec.org/acquisition")
-        });
+        let has_acquisition = self
+            .links
+            .as_ref()
+            .map(|links| {
+                links.iter().any(|l| {
+                    matches!(
+                        l.rel.as_str(),
+                        "acquisition" | "borrow" | "buy" | "download" | "preview" | "subscribe"
+                    ) || l.rel.starts_with("http://opds-spec.org/acquisition")
+                })
+            })
+            .unwrap_or(false);
         if !has_acquisition {
             return Err(crate::common::error::OpdsError::Validation(
                 "Publication must contain at least one acquisition link".to_string(),
@@ -202,8 +208,10 @@ impl Publication {
         }
 
         // Validate all links
-        for link in &self.links {
-            link.validate()?;
+        if let Some(ref links) = self.links {
+            for link in links {
+                link.validate()?;
+            }
         }
 
         // Validate images if present (images is optional)
