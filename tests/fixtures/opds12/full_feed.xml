@@ -33,6 +33,8 @@
         
         <contributor>Ann Archer</contributor>
         
+        <summary>The classic programming reference</summary>
+        
         <dc:identifier xmlns:dc="http://purl.org/dc/terms/">ISBN:978-0201896831</dc:identifier>
         <dc:language xmlns:dc="http://purl.org/dc/terms/">en</dc:language>
         <dc:publisher xmlns:dc="http://purl.org/dc/terms/">Addison-Wesley</dc:publisher>
@@ -48,9 +50,12 @@
         <id>urn:uuid:book-2-12345678-1234-1234-1234-123456789012</id>
         <title>Open Source Guide</title>
         <updated>2024-01-05T12:00:00Z</updated>
+        
         <author>
             <name>Open Source Foundation</name>
         </author>
+        
+        <summary>A comprehensive guide to open source software</summary>
         
         <dc:identifier xmlns:dc="http://purl.org/dc/terms/">DOI:10.1234/opensource</dc:identifier>
         <dc:language xmlns:dc="http://purl.org/dc/terms/">en</dc:language>

@@ -1,6 +1,6 @@
 //! Integration tests for OPDS 2.0 parser and generator
 
-use rustomize_opds::opds2::{Generator, Parser};
+use rustomize_opds::opds2::{Generator, Link, LinkWithType, Parser};
 
 #[test]
 fn test_parse_minimal_opds2_feed() {
@@ -10,27 +10,31 @@ fn test_parse_minimal_opds2_feed() {
     let json = std::fs::read_to_string("tests/fixtures/opds2/minimal_feed.json")
         .expect("Failed to read fixture file");
 
-    // Try parsing JSON first to verify
-    let parsed_json: serde_json::Value =
-        serde_json::from_str(&json).expect("Failed to parse JSON as Value");
-
-    // Print to stderr
-    eprintln!("Parsed JSON as Value: {}", parsed_json);
-    eprintln!("Attempting to parse as Feed...");
-
     // Parse the feed
     let feed = parser.parse_feed(&json).expect("Failed to parse feed");
 
-    // Verify feed metadata
-    assert_eq!(feed.title, Some("Minimal OPDS 2.0 Feed".to_string()));
-    assert!(feed.identifier.is_some());
+    // Verify feed metadata (now nested)
+    assert_eq!(
+        feed.metadata
+            .as_ref()
+            .unwrap()
+            .title
+            .as_ref()
+            .unwrap()
+            .get_primary(),
+        Some("Minimal OPDS 2.0 Feed".to_string())
+    );
+    assert!(feed.metadata.as_ref().unwrap().identifier.is_some());
 
     // Verify links
-    assert!(!feed.feed_links.is_empty());
-    assert_eq!(feed.feed_links[0].rel, "self");
+    assert_eq!(feed.feed_links.as_ref().unwrap().len(), 1);
     assert_eq!(
-        feed.feed_links[0].href,
-        "http://example.com/opds2/minimal.json"
+        feed.feed_links.as_ref().unwrap()[0].rel,
+        Some(vec!["self".to_string()])
+    );
+    assert_eq!(
+        feed.feed_links.as_ref().unwrap()[0].href,
+        Some("http://example.com/opds2/minimal.json".to_string())
     );
 
     // Verify publications collection exists
@@ -39,9 +43,19 @@ fn test_parse_minimal_opds2_feed() {
     assert!(!publications.is_empty());
 
     // Verify first publication
-    let pub_ = &publications[0];
-    assert_eq!(pub_.metadata.title, Some("Sample Publication".to_string()));
-    assert!(pub_.metadata.type_.is_some());
+    let publication = &publications[0];
+    assert_eq!(
+        publication
+            .metadata
+            .as_ref()
+            .unwrap()
+            .title
+            .as_ref()
+            .unwrap()
+            .get_primary(),
+        Some("Sample Publication".to_string())
+    );
+    assert!(publication.metadata.as_ref().unwrap().type_.is_some());
 }
 
 #[test]
@@ -55,21 +69,38 @@ fn test_parse_full_opds2_feed() {
     // Parse the feed
     let feed = parser.parse_feed(&json).expect("Failed to parse feed");
 
-    // Verify feed metadata
-    assert_eq!(feed.title, Some("Complete OPDS 2.0 Catalog".to_string()));
-    assert!(feed.subtitle.is_some());
-    assert_eq!(feed.items_per_page, Some(50));
-    assert_eq!(feed.current_page, Some(1));
-    assert_eq!(feed.number_of_items, Some(1000));
+    // Verify feed metadata (now nested)
+    assert_eq!(
+        feed.metadata
+            .as_ref()
+            .unwrap()
+            .title
+            .as_ref()
+            .unwrap()
+            .get_primary(),
+        Some("Complete OPDS 2.0 Catalog".to_string())
+    );
+    assert!(feed.metadata.as_ref().unwrap().subtitle.is_some());
+    assert_eq!(feed.metadata.as_ref().unwrap().items_per_page, Some(50));
+    assert_eq!(feed.metadata.as_ref().unwrap().current_page, Some(1));
+    assert_eq!(feed.metadata.as_ref().unwrap().number_of_items, Some(1000));
 
     // Verify multiple link types
-    assert!(!feed.feed_links.is_empty());
-    let self_link = feed
-        .feed_links
+    let feed_links = feed.feed_links.as_ref().unwrap();
+    assert_eq!(feed_links.len(), 3);
+    let self_link = feed_links
         .iter()
-        .find(|l| l.rel == "self")
+        .find(|l| {
+            l.rel
+                .as_ref()
+                .map(|rels| rels.contains(&"self".to_string()))
+                .unwrap_or(false)
+        })
         .expect("Should have self link");
-    assert_eq!(self_link.href, "http://example.com/opds2/full.json");
+    assert_eq!(
+        self_link.href,
+        Some("http://example.com/opds2/full.json".to_string())
+    );
 
     // Verify navigation collection
     assert!(feed.navigation.is_some());
@@ -82,21 +113,31 @@ fn test_parse_full_opds2_feed() {
     assert!(publications.len() >= 2);
 
     // Verify first publication has complex metadata
-    let pub_ = &publications[0];
+    let publication = &publications[0];
     assert_eq!(
-        pub_.metadata.title,
+        publication
+            .metadata
+            .as_ref()
+            .unwrap()
+            .title
+            .as_ref()
+            .unwrap()
+            .get_primary(),
         Some("The Art of Programming".to_string())
     );
-    assert!(pub_.metadata.author.is_some());
-    assert!(pub_.metadata.language.is_some());
+    assert!(publication.metadata.as_ref().unwrap().author.is_some());
+    assert!(publication.metadata.as_ref().unwrap().language.is_some());
 
     // Verify links with properties
-    let acquisition_link = pub_
-        .links
-        .as_ref()
-        .unwrap()
+    let links = publication.links.as_ref().unwrap();
+    let acquisition_link = links
         .iter()
-        .find(|l| l.rel == "acquisition")
+        .find(|l| {
+            l.rel
+                .as_ref()
+                .map(|rels| rels.contains(&"acquisition".to_string()))
+                .unwrap_or(false)
+        })
         .expect("Should have acquisition link");
 
     assert!(acquisition_link.properties.is_some());
@@ -137,8 +178,24 @@ fn test_round_trip_generation() {
         .parse_feed(&generated_json)
         .expect("Failed to reparse generated JSON");
 
-    // Verify basic properties match
-    assert_eq!(reparsed_feed.title, feed.title);
+    // Verify basic properties match (using metadata.title)
+    assert_eq!(
+        reparsed_feed
+            .metadata
+            .as_ref()
+            .unwrap()
+            .title
+            .as_ref()
+            .unwrap()
+            .get_primary(),
+        feed.metadata
+            .as_ref()
+            .unwrap()
+            .title
+            .as_ref()
+            .unwrap()
+            .get_primary()
+    );
 }
 
 #[test]
@@ -146,11 +203,23 @@ fn test_generate_minimal_structures() {
     // Test generating minimal feed
     let feed = Generator::generate_minimal_feed("Test Catalog", "http://example.com/catalog.json");
 
-    assert_eq!(feed.title, Some("Test Catalog".to_string()));
-    assert_eq!(feed.feed_links.len(), 1);
-    assert_eq!(feed.feed_links[0].rel, "self");
     assert_eq!(
-        feed.feed_links[0].type_,
+        feed.metadata
+            .as_ref()
+            .unwrap()
+            .title
+            .as_ref()
+            .unwrap()
+            .get_primary(),
+        Some("Test Catalog".to_string())
+    );
+    assert_eq!(feed.feed_links.as_ref().unwrap().len(), 1);
+    assert_eq!(
+        feed.feed_links.as_ref().unwrap()[0].rel,
+        Some(vec!["self".to_string()])
+    );
+    assert_eq!(
+        feed.feed_links.as_ref().unwrap()[0].type_,
         Some("application/opds+json".to_string())
     );
 
@@ -161,7 +230,17 @@ fn test_generate_minimal_structures() {
         "http://example.com/book.epub",
     );
 
-    assert_eq!(publication.metadata.title, Some("Test Book".to_string()));
+    assert_eq!(
+        publication
+            .metadata
+            .as_ref()
+            .unwrap()
+            .title
+            .as_ref()
+            .unwrap()
+            .get_primary(),
+        Some("Test Book".to_string())
+    );
     assert_eq!(publication.links.as_ref().unwrap().len(), 2);
 
     let download_link = publication
@@ -169,8 +248,85 @@ fn test_generate_minimal_structures() {
         .as_ref()
         .unwrap()
         .iter()
-        .find(|l| l.rel == "download")
+        .find(|l| {
+            l.rel
+                .as_ref()
+                .map(|rels| rels.contains(&"download".to_string()))
+                .unwrap_or(false)
+        })
         .expect("Should have download link");
 
-    assert_eq!(download_link.href, "http://example.com/book.epub");
+    assert_eq!(
+        download_link.href,
+        Some("http://example.com/book.epub".to_string())
+    );
+}
+
+#[test]
+fn test_generate_search_link() {
+    let search_link = Generator::generate_search_link("search{?query}");
+
+    assert_eq!(search_link.rel, Some(vec!["search".to_string()]));
+    assert_eq!(search_link.href, Some("search{?query}".to_string()));
+    assert_eq!(search_link.type_, Some("application/opds+json".to_string()));
+    assert_eq!(search_link.templated, Some(true));
+}
+
+#[test]
+fn test_contributor_with_links_validation() {
+    use rustomize_opds::opds2::{Contributor, Link};
+
+    // Valid contributor with links
+    let contributor =
+        Contributor::new("Test Author").with_links(vec![Link::new("http://example.com/author")
+            .with_rel("self")
+            .with_type("application/opds+json")]);
+
+    assert!(contributor.validate().is_ok());
+}
+
+#[test]
+fn test_facet_validation_requires_multiple_links() {
+    use rustomize_opds::opds2::Facet;
+
+    // Facet with only one link should fail
+    let facet = Facet::new("Test Facet", Some(vec![Link::new("http://example.com")]));
+
+    let result = facet.validate();
+    assert!(result.is_err());
+    assert!(result
+        .unwrap_err()
+        .to_string()
+        .contains("at least two links"));
+}
+
+#[test]
+fn test_author_with_links() {
+    use rustomize_opds::opds2::{Author, Link};
+
+    // Create author with links
+    let author =
+        Author::new("Test Author").with_links(vec![Link::new("http://example.com/author")
+            .with_rel("self")
+            .with_type("application/opds+json")]);
+
+    assert_eq!(author.name, Some("Test Author".to_string()));
+    assert!(author.links.is_some());
+    assert_eq!(author.links.as_ref().unwrap().len(), 1);
+}
+
+#[test]
+fn test_contributor_with_links() {
+    use rustomize_opds::opds2::{Contributor, Link};
+
+    // Create contributor with links
+    let contributor = Contributor::new("Test Translator").with_links(vec![Link::new(
+        "http://example.com/translator",
+    )
+    .with_rel("self")
+    .with_type("application/opds+json")]);
+
+    assert_eq!(contributor.name, Some("Test Translator".to_string()));
+    assert!(contributor.links.is_some());
+    assert_eq!(contributor.links.as_ref().unwrap().len(), 1);
 }

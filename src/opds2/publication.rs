@@ -4,13 +4,17 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
 use crate::common::{Validate, ValidationResult};
-use crate::opds2::Link;
+use crate::opds2::types::{
+    Accessibility, AltIdentifier, LanguageMap, Layout, ReadingProgression, Subject, Tdm,
+};
+use crate::opds2::{CollectionInfo, Contributor, Link, SeriesInfo};
 
 /// OPDS 2.0 Publication
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct Publication {
-    /// Publication metadata
-    pub metadata: PublicationMetadata,
+    /// Publication metadata - required by OPDS 2.0
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub metadata: Option<PublicationMetadata>,
     /// Publication links (must contain at least one acquisition link)
     #[serde(rename = "links", skip_serializing_if = "Option::is_none")]
     pub links: Option<Vec<Link>>,
@@ -39,10 +43,10 @@ pub struct PublicationMetadata {
     pub type_: Option<String>,
     /// Title of the publication
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub title: Option<String>,
+    pub title: Option<LanguageMap>,
     /// Subtitle
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub subtitle: Option<String>,
+    pub subtitle: Option<LanguageMap>,
     /// Last modification date
     #[serde(skip_serializing_if = "Option::is_none")]
     pub modified: Option<DateTime<Utc>>,
@@ -70,24 +74,42 @@ pub struct PublicationMetadata {
         skip_serializing_if = "Option::is_none"
     )]
     pub number_of_items: Option<u32>,
-    /// Author (can be string or object with links)
+    /// Author (contributor object with links)
     #[serde(skip_serializing_if = "Option::is_none")]
     pub author: Option<Author>,
-    /// Translator
+    /// Translator (contributor object with links)
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub translator: Option<String>,
-    /// Editor
+    pub translator: Option<Contributor>,
+    /// Editor (contributor object with links)
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub editor: Option<String>,
-    /// Illustrator
+    pub editor: Option<Contributor>,
+    /// Illustrator (contributor object with links)
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub illustrator: Option<String>,
-    /// Narrator
+    pub illustrator: Option<Contributor>,
+    /// Narrator (contributor object with links)
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub narrator: Option<String>,
-    /// Publisher
+    pub narrator: Option<Contributor>,
+    /// Publisher (contributor object with links)
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub publisher: Option<String>,
+    pub publisher: Option<Contributor>,
+    /// Artist (contributor object)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub artist: Option<Contributor>,
+    /// Letterer (contributor object)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub letterer: Option<Contributor>,
+    /// Penciler (contributor object)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub penciler: Option<Contributor>,
+    /// Colorist (contributor object)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub colorist: Option<Contributor>,
+    /// Inker (contributor object)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub inker: Option<Contributor>,
+    /// Contributor (generic)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub contributor: Option<Contributor>,
     /// Language
     #[serde(skip_serializing_if = "Option::is_none")]
     pub language: Option<String>,
@@ -97,35 +119,292 @@ pub struct PublicationMetadata {
     /// Series info
     #[serde(skip_serializing_if = "Option::is_none")]
     pub series: Option<SeriesInfo>,
-    /// Collection info
+    /// Collection info (full object)
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub collection: Option<String>,
+    pub collection: Option<CollectionInfo>,
+    /// Belongs to (collection, journal, magazine, etc.)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub belongs_to: Option<BelongsTo>,
+    /// Contains (article, chapter, etc.)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub contains: Option<Contains>,
+    /// Accessibility metadata
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub accessibility: Option<Accessibility>,
+    /// Layout hint
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub layout: Option<Layout>,
+    /// Reading progression direction
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub reading_progression: Option<ReadingProgression>,
+    /// Duration (in seconds)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub duration: Option<f64>,
+    /// Number of pages
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub number_of_pages: Option<u32>,
+    /// Subject terms
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub subject: Option<Vec<Subject>>,
+    /// Conforms to (spec compliance URIs)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub conforms_to: Option<Vec<String>>,
+    /// Alternative identifiers
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub alt_identifier: Option<Vec<AltIdentifier>>,
+    /// TDM (Text and Data Mining) metadata
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tdm: Option<Tdm>,
 }
 
-/// Author information (can include links)
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-pub struct Author {
-    /// Author name
-    pub name: String,
+/// Belongs to structure (collection, journal, magazine, etc.)
+#[derive(Debug, Default, Clone, Serialize, Deserialize, PartialEq)]
+pub struct BelongsTo {
+    /// Collection info
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub collection: Option<CollectionInfo>,
+    /// Journal info
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub journal: Option<PeriodicalInfo>,
+    /// Magazine info
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub magazine: Option<PeriodicalInfo>,
+    /// Newspaper info
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub newspaper: Option<PeriodicalInfo>,
+    /// Season info
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub season: Option<SeasonInfo>,
+    /// Series info
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub series: Option<SeriesInfo>,
+    /// Story arc info
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub story_arc: Option<StoryArcInfo>,
+    /// Volume info
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub volume: Option<VolumeInfo>,
+}
+
+/// Periodical info (journal, magazine, newspaper)
+#[derive(Debug, Default, Clone, Serialize, Deserialize, PartialEq)]
+pub struct PeriodicalInfo {
+    /// Name
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
     /// Identifier
     #[serde(skip_serializing_if = "Option::is_none")]
     pub identifier: Option<String>,
-    /// Sort order
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub sort_as: Option<String>,
-    /// Links to author resources
+    /// Links
     #[serde(skip_serializing_if = "Option::is_none")]
     pub links: Option<Vec<Link>>,
 }
 
-/// Series information
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-pub struct SeriesInfo {
-    /// Series name
-    pub name: String,
-    /// Position in series
+impl PeriodicalInfo {
+    /// Create new periodical info with name
+    pub fn new(name: impl Into<String>) -> Self {
+        Self {
+            name: Some(name.into()),
+            ..Default::default()
+        }
+    }
+}
+
+/// Season info
+#[derive(Debug, Default, Clone, Serialize, Deserialize, PartialEq)]
+pub struct SeasonInfo {
+    /// Name
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub position: Option<u32>,
+    pub name: Option<String>,
+    /// Identifier
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub identifier: Option<String>,
+    /// Links
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub links: Option<Vec<Link>>,
+}
+
+impl SeasonInfo {
+    /// Create new season info with name
+    pub fn new(name: impl Into<String>) -> Self {
+        Self {
+            name: Some(name.into()),
+            ..Default::default()
+        }
+    }
+}
+
+/// Story arc info
+#[derive(Debug, Default, Clone, Serialize, Deserialize, PartialEq)]
+pub struct StoryArcInfo {
+    /// Name
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+    /// Identifier
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub identifier: Option<String>,
+    /// Links
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub links: Option<Vec<Link>>,
+}
+
+impl StoryArcInfo {
+    /// Create new story arc info with name
+    pub fn new(name: impl Into<String>) -> Self {
+        Self {
+            name: Some(name.into()),
+            ..Default::default()
+        }
+    }
+}
+
+/// Volume info
+#[derive(Debug, Default, Clone, Serialize, Deserialize, PartialEq)]
+pub struct VolumeInfo {
+    /// Name
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+    /// Identifier
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub identifier: Option<String>,
+    /// Links
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub links: Option<Vec<Link>>,
+}
+
+impl VolumeInfo {
+    /// Create new volume info with name
+    pub fn new(name: impl Into<String>) -> Self {
+        Self {
+            name: Some(name.into()),
+            ..Default::default()
+        }
+    }
+}
+
+/// Contains structure (article, chapter, etc.)
+#[derive(Debug, Default, Clone, Serialize, Deserialize, PartialEq)]
+pub struct Contains {
+    /// Article info
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub article: Option<ArticleInfo>,
+    /// Chapter info
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub chapter: Option<ChapterInfo>,
+    /// Episode info
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub episode: Option<EpisodeInfo>,
+    /// Issue info
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub issue: Option<IssueInfo>,
+    /// Season info
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub season: Option<SeasonInfo>,
+    /// Series info
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub series: Option<SeriesInfo>,
+    /// Story arc info
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub story_arc: Option<StoryArcInfo>,
+    /// Volume info
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub volume: Option<VolumeInfo>,
+}
+
+/// Article info
+#[derive(Debug, Default, Clone, Serialize, Deserialize, PartialEq)]
+pub struct ArticleInfo {
+    /// Name
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+    /// Identifier
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub identifier: Option<String>,
+    /// Links
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub links: Option<Vec<Link>>,
+}
+
+impl ArticleInfo {
+    /// Create new article info with name
+    pub fn new(name: impl Into<String>) -> Self {
+        Self {
+            name: Some(name.into()),
+            ..Default::default()
+        }
+    }
+}
+
+/// Chapter info
+#[derive(Debug, Default, Clone, Serialize, Deserialize, PartialEq)]
+pub struct ChapterInfo {
+    /// Name
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+    /// Identifier
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub identifier: Option<String>,
+    /// Links
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub links: Option<Vec<Link>>,
+}
+
+impl ChapterInfo {
+    /// Create new chapter info with name
+    pub fn new(name: impl Into<String>) -> Self {
+        Self {
+            name: Some(name.into()),
+            ..Default::default()
+        }
+    }
+}
+
+/// Episode info
+#[derive(Debug, Default, Clone, Serialize, Deserialize, PartialEq)]
+pub struct EpisodeInfo {
+    /// Name
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+    /// Identifier
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub identifier: Option<String>,
+    /// Links
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub links: Option<Vec<Link>>,
+}
+
+impl EpisodeInfo {
+    /// Create new episode info with name
+    pub fn new(name: impl Into<String>) -> Self {
+        Self {
+            name: Some(name.into()),
+            ..Default::default()
+        }
+    }
+}
+
+/// Issue info
+#[derive(Debug, Default, Clone, Serialize, Deserialize, PartialEq)]
+pub struct IssueInfo {
+    /// Name
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+    /// Identifier
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub identifier: Option<String>,
+    /// Links
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub links: Option<Vec<Link>>,
+}
+
+impl IssueInfo {
+    /// Create new issue info with name
+    pub fn new(name: impl Into<String>) -> Self {
+        Self {
+            name: Some(name.into()),
+            ..Default::default()
+        }
+    }
 }
 
 impl Default for PublicationMetadata {
@@ -146,17 +425,34 @@ impl Default for PublicationMetadata {
             illustrator: None,
             narrator: None,
             publisher: None,
+            artist: None,
+            letterer: None,
+            penciler: None,
+            colorist: None,
+            inker: None,
+            contributor: None,
             language: None,
             published: None,
             series: None,
             collection: None,
+            belongs_to: None,
+            contains: None,
+            accessibility: None,
+            layout: None,
+            reading_progression: None,
+            duration: None,
+            number_of_pages: None,
+            subject: None,
+            conforms_to: None,
+            alt_identifier: None,
+            tdm: None,
         }
     }
 }
 
 impl Publication {
     /// Create a new publication
-    pub fn new(metadata: PublicationMetadata, links: Option<Vec<Link>>) -> Self {
+    pub fn new(metadata: Option<PublicationMetadata>, links: Option<Vec<Link>>) -> Self {
         Self {
             metadata,
             links,
@@ -167,6 +463,12 @@ impl Publication {
         }
     }
 
+    /// Add metadata
+    pub fn with_metadata(mut self, metadata: PublicationMetadata) -> Self {
+        self.metadata = Some(metadata);
+        self
+    }
+
     /// Add images
     pub fn with_images(mut self, images: Vec<Link>) -> Self {
         self.images = Some(images);
@@ -175,11 +477,19 @@ impl Publication {
 
     /// Validate the publication
     pub fn validate(&self) -> ValidationResult {
-        if self.metadata.title.is_none()
-            || self
-                .metadata
+        // metadata is required by OPDS 2.0
+        let metadata =
+            self.metadata
+                .as_ref()
+                .ok_or(crate::common::error::OpdsError::Validation(
+                    "Publication metadata is required".to_string(),
+                ))?;
+
+        if metadata.title.is_none()
+            || metadata
                 .title
                 .as_ref()
+                .and_then(|t| t.get_primary())
                 .map(|s| s.is_empty())
                 .unwrap_or(true)
         {
@@ -194,10 +504,20 @@ impl Publication {
             .as_ref()
             .map(|links| {
                 links.iter().any(|l| {
-                    matches!(
-                        l.rel.as_str(),
-                        "acquisition" | "borrow" | "buy" | "download" | "preview" | "subscribe"
-                    ) || l.rel.starts_with("http://opds-spec.org/acquisition")
+                    l.rel
+                        .as_ref()
+                        .map(|rels| {
+                            rels.contains(&"acquisition".to_string())
+                                || rels.contains(&"borrow".to_string())
+                                || rels.contains(&"buy".to_string())
+                                || rels.contains(&"download".to_string())
+                                || rels.contains(&"preview".to_string())
+                                || rels.contains(&"subscribe".to_string())
+                                || rels
+                                    .iter()
+                                    .any(|r| r.starts_with("http://opds-spec.org/acquisition"))
+                        })
+                        .unwrap_or(false)
                 })
             })
             .unwrap_or(false);
@@ -245,8 +565,77 @@ impl PublicationMetadata {
     /// Create new publication metadata with title
     pub fn new(title: impl Into<String>) -> Self {
         Self {
-            title: Some(title.into()),
+            title: Some(LanguageMap::new(title)),
             ..Default::default()
         }
+    }
+}
+
+/// Author information (can include links)
+#[derive(Debug, Default, Clone, Serialize, Deserialize, PartialEq)]
+pub struct Author {
+    /// Author name - required by OPDS 2.0
+    pub name: Option<String>,
+    /// Identifier
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub identifier: Option<String>,
+    /// Sort order
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub sort_as: Option<String>,
+    /// Links to author resources
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub links: Option<Vec<Link>>,
+}
+
+impl Author {
+    /// Create new author with name
+    pub fn new(name: impl Into<String>) -> Self {
+        Self {
+            name: Some(name.into()),
+            ..Default::default()
+        }
+    }
+
+    /// Set links on author
+    pub fn with_links(mut self, links: Vec<Link>) -> Self {
+        self.links = Some(links);
+        self
+    }
+}
+
+impl Validate for Author {
+    fn validate(&self) -> ValidationResult {
+        // If author has links, they must be valid
+        if let Some(ref links) = self.links {
+            for link in links {
+                link.validate()?;
+            }
+        }
+        Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_series_info_new() {
+        let series = SeriesInfo::new("Test Series");
+        assert_eq!(series.name, Some("Test Series".to_string()));
+        assert!(series.position.is_none());
+    }
+
+    #[test]
+    fn test_series_info_default() {
+        let series = SeriesInfo::default();
+        assert!(series.name.is_none());
+        assert!(series.position.is_none());
+    }
+
+    #[test]
+    fn test_series_info_with_position() {
+        let series = SeriesInfo::new("Test Series");
+        assert_eq!(series.name, Some("Test Series".to_string()));
     }
 }

@@ -11,6 +11,7 @@
         <author>
             <name>John Doe</name>
         </author>
+        <summary>Sample book summary text</summary>
         <link rel="http://opds-spec.org/acquisition" href="http://example.com/book.epub" type="application/epub+zip"/>
     </entry>
 </feed>

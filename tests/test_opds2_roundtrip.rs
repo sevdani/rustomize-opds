@@ -1,8 +1,9 @@
 //! Integration tests for OPDS 2.0 generator and parser round-trip validation
 
 use rustomize_opds::opds2::{
-    AcquisitionObject, Availability, AvailabilityState, Copies, Feed, Generator, Holds, Link,
-    LinkProperties, LinkWithType, Parser, Price, Publication, PublicationMetadata,
+    AcquisitionObject, Availability, AvailabilityState, CollectionInfo, Contributor, Copies, Feed,
+    Generator, Holds, LanguageMap, Link, LinkProperties, LinkWithType, Parser, Price, Publication,
+    PublicationMetadata,
 };
 use rustomize_opds::opds2::{Author, SeriesInfo};
 use rustomize_opds::opds2::{LinkWithProperties, PublicationWithLink};
@@ -33,17 +34,20 @@ fn test_generate_parse_minimal_feed() {
     let parsed_feed = parser.parse_feed(&json).expect("Failed to parse JSON");
 
     // Validate basic fields
-    assert_eq!(parsed_feed.title, original_feed.title);
+    assert_eq!(
+        parsed_feed.metadata.as_ref().unwrap().title,
+        original_feed.metadata.as_ref().unwrap().title
+    );
 
     // Validate links
-    assert_eq!(parsed_feed.feed_links.len(), original_feed.feed_links.len());
+    assert_eq!(parsed_feed.feed_links, original_feed.feed_links);
     assert_eq!(
-        parsed_feed.feed_links[0].rel,
-        original_feed.feed_links[0].rel
+        parsed_feed.feed_links.as_ref().unwrap()[0].rel,
+        Some(vec!["self".to_string()])
     );
     assert_eq!(
-        parsed_feed.feed_links[0].href,
-        original_feed.feed_links[0].href
+        parsed_feed.feed_links.as_ref().unwrap()[0].href,
+        original_feed.feed_links.as_ref().unwrap()[0].href
     );
 
     // Validate publications
@@ -63,7 +67,9 @@ fn test_generate_parse_feed_with_publications() {
     // Create feed with publications
     let mut feed = Feed::new(
         "Feed with Publications",
-        vec![Link::new("self", "http://example.com/feed.json").with_type("application/opds+json")],
+        vec![Link::new("http://example.com/feed.json")
+            .with_type("application/opds+json")
+            .with_rel("self")],
     );
 
     // Add publications
@@ -96,7 +102,17 @@ fn test_generate_parse_feed_with_publications() {
 
     // Validate first publication
     let pub1_parsed = &publications[0];
-    assert_eq!(pub1_parsed.metadata.title, Some("Book One".to_string()));
+    assert_eq!(
+        pub1_parsed
+            .metadata
+            .as_ref()
+            .unwrap()
+            .title
+            .as_ref()
+            .unwrap()
+            .get_primary(),
+        Some("Book One".to_string())
+    );
     assert_eq!(pub1_parsed.links.as_ref().unwrap().len(), 2);
 
     // Validate parsed feed
@@ -111,15 +127,19 @@ fn test_generate_parse_feed_with_navigation() {
 
     let mut feed = Feed::new(
         "Feed with Navigation",
-        vec![Link::new("self", "http://example.com/feed.json").with_type("application/opds+json")],
+        vec![Link::new("http://example.com/feed.json")
+            .with_type("application/opds+json")
+            .with_rel("self")],
     );
 
     // Add navigation links
     feed = feed.with_navigation(vec![
-        Link::new("navigation", "http://example.com/fiction")
+        Link::new("http://example.com/fiction")
+            .with_rel("subcollection")
             .with_title("Fiction")
             .with_type("application/opds-publication+json"),
-        Link::new("navigation", "http://example.com/non-fiction")
+        Link::new("http://example.com/non-fiction")
+            .with_rel("subcollection")
             .with_title("Non-Fiction")
             .with_type("application/opds-publication+json"),
     ]);
@@ -152,7 +172,9 @@ fn test_generate_parse_feed_with_pagination() {
 
     let mut feed = Feed::new(
         "Paginated Feed",
-        vec![Link::new("self", "http://example.com/feed.json").with_type("application/opds+json")],
+        vec![Link::new("http://example.com/feed.json")
+            .with_type("application/opds+json")
+            .with_rel("self")],
     );
     feed.items_per_page = Some(50);
     feed.current_page = Some(3);
@@ -198,25 +220,27 @@ fn test_generate_parse_publication_with_link_properties() {
     // Create publication with link properties
     let metadata = PublicationMetadata::new("Publication with Properties");
     let mut pub_ = Publication::new(
-        metadata,
-        Some(vec![Link::new("self", "http://example.com/pub.json")
-            .with_type("application/opds-publication+json")]),
+        Some(metadata),
+        Some(vec![Link::new("http://example.com/pub.json")
+            .with_type("application/opds-publication+json")
+            .with_rel("self")]),
     );
 
     // Add acquisition link with properties
-    let acquisition_link = Link::new("acquisition", "http://example.com/book.epub")
+    let acquisition_link = Link::new("http://example.com/book.epub")
+        .with_rel("acquisition")
         .with_type("application/epub+zip")
         .with_title("Download EPUB");
 
     // Add price
     let price = Price {
-        currency: "USD".to_string(),
-        value: 19.99,
+        currency: Some("USD".to_string()),
+        value: Some(19.99),
     };
 
     // Add indirect acquisition
     let indirect = AcquisitionObject {
-        r#type: "application/epub+zip".to_string(),
+        r#type: Some("application/epub+zip".to_string()),
         child: None,
     };
 
@@ -247,8 +271,11 @@ fn test_generate_parse_publication_with_link_properties() {
 
     let props = parsed_link.properties.as_ref().unwrap();
     assert!(props.price.is_some());
-    assert_eq!(props.price.as_ref().unwrap().currency, "USD");
-    assert_eq!(props.price.as_ref().unwrap().value, 19.99);
+    assert_eq!(
+        props.price.as_ref().unwrap().currency,
+        Some("USD".to_string())
+    );
+    assert_eq!(props.price.as_ref().unwrap().value, Some(19.99));
 
     assert!(props.indirect_acquisition.is_some());
     assert_eq!(props.indirect_acquisition.as_ref().unwrap().len(), 1);
@@ -267,22 +294,24 @@ fn test_generate_parse_publication_with_availability() {
 
     let metadata = PublicationMetadata::new("Publication with Availability");
     let mut pub_ = Publication::new(
-        metadata,
-        Some(vec![Link::new("self", "http://example.com/pub.json")
-            .with_type("application/opds-publication+json")]),
+        Some(metadata),
+        Some(vec![Link::new("http://example.com/pub.json")
+            .with_type("application/opds-publication+json")
+            .with_rel("self")]),
     );
 
     // Add acquisition link with availability
     let properties = LinkProperties {
         availability: Some(Availability {
-            state: AvailabilityState::Available,
+            state: Some(AvailabilityState::Available),
             since: Some("2024-01-01T00:00:00Z".to_string()),
             until: Some("2024-12-31T23:59:59Z".to_string()),
         }),
         ..LinkProperties::default()
     };
 
-    let acquisition_link = Link::new("acquisition", "http://example.com/book.epub")
+    let acquisition_link = Link::new("http://example.com/book.epub")
+        .with_rel("acquisition")
         .with_type("application/epub+zip")
         .with_properties(properties);
 
@@ -310,7 +339,10 @@ fn test_generate_parse_publication_with_availability() {
         .availability
         .as_ref()
         .unwrap();
-    assert!(matches!(availability.state, AvailabilityState::Available));
+    assert!(matches!(
+        availability.state,
+        Some(AvailabilityState::Available)
+    ));
     assert_eq!(availability.since, Some("2024-01-01T00:00:00Z".to_string()));
     assert_eq!(availability.until, Some("2024-12-31T23:59:59Z".to_string()));
 
@@ -326,25 +358,27 @@ fn test_generate_parse_publication_with_holds_and_copies() {
 
     let metadata = PublicationMetadata::new("Publication with Library Features");
     let mut pub_ = Publication::new(
-        metadata,
-        Some(vec![Link::new("self", "http://example.com/pub.json")
-            .with_type("application/opds-publication+json")]),
+        Some(metadata),
+        Some(vec![Link::new("http://example.com/pub.json")
+            .with_type("application/opds-publication+json")
+            .with_rel("self")]),
     );
 
     // Add acquisition link with holds and copies
     let properties = LinkProperties {
         holds: Some(Holds {
-            total: 10,
-            position: 3,
+            total: Some(10),
+            position: Some(3),
         }),
         copies: Some(Copies {
-            total: 5,
-            available: 2,
+            total: Some(5),
+            available: Some(2),
         }),
         ..LinkProperties::default()
     };
 
-    let acquisition_link = Link::new("acquisition", "http://example.com/book.epub")
+    let acquisition_link = Link::new("http://example.com/book.epub")
+        .with_rel("acquisition")
         .with_type("application/epub+zip")
         .with_properties(properties);
 
@@ -370,8 +404,8 @@ fn test_generate_parse_publication_with_holds_and_copies() {
         .holds
         .as_ref()
         .unwrap();
-    assert_eq!(holds.total, 10);
-    assert_eq!(holds.position, 3);
+    assert_eq!(holds.total, Some(10));
+    assert_eq!(holds.position, Some(3));
 
     // Validate copies
     let copies = parsed_link
@@ -381,8 +415,8 @@ fn test_generate_parse_publication_with_holds_and_copies() {
         .copies
         .as_ref()
         .unwrap();
-    assert_eq!(copies.total, 5);
-    assert_eq!(copies.available, 2);
+    assert_eq!(copies.total, Some(5));
+    assert_eq!(copies.available, Some(2));
 
     // Validate parsed publication
     parser
@@ -396,13 +430,14 @@ fn test_validation_fails_on_missing_title() {
 
     // Create publication with missing title
     let mut pub_ = Publication::new(
-        PublicationMetadata::default(),
-        Some(vec![Link::new("self", "http://example.com/pub.json")
-            .with_type("application/opds-publication+json")]),
+        Some(PublicationMetadata::default()),
+        Some(vec![
+            Link::new("http://example.com/pub.json").with_type("application/opds-publication+json")
+        ]),
     );
 
     // Add acquisition link
-    pub_ = pub_.with_link(Link::new("acquisition", "http://example.com/book.epub"));
+    pub_ = pub_.with_link(Link::new("http://example.com/book.epub"));
 
     // Generate to JSON (with validate=false to generate invalid data)
     let json = generator
@@ -426,9 +461,10 @@ fn test_validation_fails_on_missing_acquisition_link() {
 
     let metadata = PublicationMetadata::new("Publication No Acquisition");
     let pub_ = Publication::new(
-        metadata,
-        Some(vec![Link::new("self", "http://example.com/pub.json")
-            .with_type("application/opds-publication+json")]),
+        Some(metadata),
+        Some(vec![
+            Link::new("http://example.com/pub.json").with_type("application/opds-publication+json")
+        ]),
     );
 
     // Generate to JSON (with validate=false to generate invalid data)
@@ -456,20 +492,21 @@ fn test_validation_fails_on_negative_price() {
 
     let metadata = PublicationMetadata::new("Publication Negative Price");
     let mut pub_ = Publication::new(
-        metadata,
-        Some(vec![Link::new("self", "http://example.com/pub.json")
-            .with_type("application/opds-publication+json")]),
+        Some(metadata),
+        Some(vec![
+            Link::new("http://example.com/pub.json").with_type("application/opds-publication+json")
+        ]),
     );
 
     let properties = LinkProperties {
         price: Some(Price {
-            currency: "USD".to_string(),
-            value: -5.00,
+            currency: Some("USD".to_string()),
+            value: Some(-5.00),
         }),
         ..LinkProperties::default()
     };
 
-    let acquisition_link = Link::new("acquisition", "http://example.com/book.epub")
+    let acquisition_link = Link::new("http://example.com/book.epub")
         .with_type("application/epub+zip")
         .with_properties(properties);
 
@@ -497,18 +534,19 @@ fn test_nested_indirect_acquisition_round_trip() {
 
     let metadata = PublicationMetadata::new("Publication Nested Acq");
     let mut pub_ = Publication::new(
-        metadata,
-        Some(vec![Link::new("self", "http://example.com/pub.json")
-            .with_type("application/opds-publication+json")]),
+        Some(metadata),
+        Some(vec![Link::new("http://example.com/pub.json")
+            .with_type("application/opds-publication+json")
+            .with_rel("self")]),
     );
 
     // Add nested indirect acquisition (Adobe DRM chain)
     let inner_acq = AcquisitionObject {
-        r#type: "application/pdf".to_string(),
+        r#type: Some("application/pdf".to_string()),
         child: None,
     };
     let outer_acq = AcquisitionObject {
-        r#type: "application/vnd.adobe.adept+xml".to_string(),
+        r#type: Some("application/vnd.adobe.adept+xml".to_string()),
         child: Some(vec![inner_acq]),
     };
 
@@ -517,7 +555,8 @@ fn test_nested_indirect_acquisition_round_trip() {
         ..LinkProperties::default()
     };
 
-    let acquisition_link = Link::new("acquisition", "http://example.com/book.pdf")
+    let acquisition_link = Link::new("http://example.com/book.pdf")
+        .with_rel("acquisition")
         .with_type("application/pdf")
         .with_properties(properties);
 
@@ -547,11 +586,14 @@ fn test_nested_indirect_acquisition_round_trip() {
     assert_eq!(acquisitions.len(), 1);
 
     let outer = &acquisitions[0];
-    assert_eq!(outer.r#type, "application/vnd.adobe.adept+xml");
+    assert_eq!(
+        outer.r#type,
+        Some("application/vnd.adobe.adept+xml".to_string())
+    );
     assert!(outer.child.is_some());
 
     let inner = outer.child.as_ref().unwrap().first().unwrap();
-    assert_eq!(inner.r#type, "application/pdf");
+    assert_eq!(inner.r#type, Some("application/pdf".to_string()));
 
     // Validate parsed publication
     parser
@@ -566,7 +608,7 @@ fn test_round_trip_with_all_fields() {
     // Create comprehensive publication
     let mut metadata = PublicationMetadata::new("Comprehensive Publication");
     metadata.identifier = Some("urn:isbn:978-1234567890".to_string());
-    metadata.subtitle = Some("A Complete Test Case".to_string());
+    metadata.subtitle = Some(LanguageMap::new("A Complete Test Case"));
     metadata.modified = Some(chrono::Utc::now());
     metadata.description = Some("This publication tests all fields".to_string());
     metadata.items_per_page = Some(10);
@@ -574,34 +616,37 @@ fn test_round_trip_with_all_fields() {
     metadata.number_of_items = Some(100);
     metadata.type_ = Some("http://schema.org/Book".to_string());
     metadata.author = Some(Author {
-        name: "Test Author".to_string(),
+        name: Some("Test Author".to_string()),
         identifier: Some("urn:author:1".to_string()),
         sort_as: Some("Author, Test".to_string()),
         links: None,
     });
-    metadata.translator = Some("Translator Name".to_string());
-    metadata.editor = Some("Editor Name".to_string());
-    metadata.illustrator = Some("Illustrator Name".to_string());
-    metadata.narrator = Some("Narrator Name".to_string());
-    metadata.publisher = Some("Publisher Name".to_string());
+    metadata.translator = Some(Contributor::new("$1"));
+    metadata.editor = Some(Contributor::new("$1"));
+    metadata.illustrator = Some(Contributor::new("$1"));
+    metadata.narrator = Some(Contributor::new("$1"));
+    metadata.publisher = Some(Contributor::new("$1"));
     metadata.language = Some("en".to_string());
     metadata.published = Some("2024-01-15".to_string());
     metadata.series = Some(SeriesInfo {
-        name: "Series Name".to_string(),
+        name: Some("Series Name".to_string()),
         position: Some(5),
+        identifier: Some("urn:series:1".to_string()),
     });
-    metadata.collection = Some("Collection Name".to_string());
+    metadata.collection = Some(CollectionInfo::new("Collection Name".to_string()));
 
     let mut pub_ = Publication::new(
-        metadata,
-        Some(vec![Link::new("self", "http://example.com/pub.json")
+        Some(metadata),
+        Some(vec![Link::new("http://example.com/pub.json")
             .with_type("application/opds-publication+json")
+            .with_rel("self")
             .with_title("Self Link")]),
     );
 
     // Add multiple links with various properties
     pub_ = pub_.with_link(
-        Link::new("alternate", "http://example.com/book.html")
+        Link::new("http://example.com/book.html")
+            .with_rel("alternate")
             .with_type("text/html")
             .with_title("HTML Version")
             .with_height(100)
@@ -609,15 +654,16 @@ fn test_round_trip_with_all_fields() {
     );
 
     pub_ = pub_.with_link(
-        Link::new("acquisition", "http://example.com/book.epub")
+        Link::new("http://example.com/book.epub")
+            .with_rel("acquisition")
             .with_type("application/epub+zip")
             .with_properties(LinkProperties {
                 price: Some(Price {
-                    currency: "USD".to_string(),
-                    value: 19.99,
+                    currency: Some("USD".to_string()),
+                    value: Some(19.99),
                 }),
                 availability: Some(Availability {
-                    state: AvailabilityState::Available,
+                    state: Some(AvailabilityState::Available),
                     since: Some("2024-01-01T00:00:00Z".to_string()),
                     until: None,
                 }),
@@ -638,20 +684,27 @@ fn test_round_trip_with_all_fields() {
 
     // Validate metadata
     assert_eq!(
-        parsed_pub.metadata.title,
-        Some("Comprehensive Publication".to_string())
+        parsed_pub.metadata.as_ref().unwrap().title,
+        Some(LanguageMap::new("Comprehensive Publication"))
     );
     assert_eq!(
-        parsed_pub.metadata.subtitle,
-        Some("A Complete Test Case".to_string())
+        parsed_pub.metadata.as_ref().unwrap().subtitle,
+        Some(LanguageMap::new("A Complete Test Case"))
     );
     assert_eq!(
-        parsed_pub.metadata.identifier,
+        parsed_pub.metadata.as_ref().unwrap().identifier,
         Some("urn:isbn:978-1234567890".to_string())
     );
     assert_eq!(
-        parsed_pub.metadata.author.as_ref().unwrap().name,
-        "Test Author"
+        parsed_pub
+            .metadata
+            .as_ref()
+            .unwrap()
+            .author
+            .as_ref()
+            .unwrap()
+            .name,
+        Some("Test Author".to_string())
     );
 
     // Validate links

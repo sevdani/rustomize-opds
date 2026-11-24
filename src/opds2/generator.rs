@@ -96,8 +96,9 @@ impl Generator {
 
     /// Generate a minimal OPDS 2.0 feed
     pub fn generate_minimal_feed(title: impl Into<String>, self_href: impl Into<String>) -> Feed {
-        let feed_link =
-            crate::opds2::Link::new("self", self_href).with_type("application/opds+json");
+        let feed_link = crate::opds2::Link::new(self_href)
+            .with_rel("self")
+            .with_type("application/opds+json");
 
         Feed::new(title, vec![feed_link])
     }
@@ -110,11 +111,20 @@ impl Generator {
     ) -> Publication {
         let metadata = crate::opds2::PublicationMetadata::new(title);
 
-        let self_link = crate::opds2::Link::new("self", self_href)
-            .with_type("application/opds-publication+json");
-        let download_link = crate::opds2::Link::new("download", download_href);
+        let self_link = crate::opds2::Link::new(self_href)
+            .with_type("application/opds-publication+json")
+            .with_rel("self");
+        let download_link = crate::opds2::Link::new(download_href).with_rel("download");
 
-        Publication::new(metadata, Some(vec![self_link, download_link]))
+        Publication::new(Some(metadata), Some(vec![self_link, download_link]))
+    }
+
+    /// Generate a search link with URI template
+    pub fn generate_search_link(template: impl Into<String>) -> crate::opds2::Link {
+        crate::opds2::Link::new(template)
+            .with_rel("search")
+            .with_type("application/opds+json")
+            .with_templated(true)
     }
 }
 
@@ -145,6 +155,8 @@ pub trait LinkWithProperties {
     fn with_height(self, height: u32) -> Self;
     /// Set the width on a link
     fn with_width(self, width: u32) -> Self;
+    /// Set the templated flag on a link
+    fn with_templated(self, templated: bool) -> Self;
     /// Set the properties on a link
     fn with_properties(self, properties: crate::opds2::LinkProperties) -> Self;
 }
@@ -162,6 +174,11 @@ impl LinkWithProperties for crate::opds2::Link {
 
     fn with_width(mut self, width: u32) -> Self {
         self.width = Some(width);
+        self
+    }
+
+    fn with_templated(mut self, templated: bool) -> Self {
+        self.templated = Some(templated);
         self
     }
 
@@ -215,10 +232,26 @@ mod tests {
     fn test_generate_minimal_feed() {
         let feed = Generator::generate_minimal_feed("Test Feed", "http://example.com/feed.json");
 
-        assert_eq!(feed.title, Some("Test Feed".to_string()));
-        assert_eq!(feed.feed_links.len(), 1);
-        assert_eq!(feed.feed_links[0].rel, "self");
-        assert_eq!(feed.feed_links[0].href, "http://example.com/feed.json");
+        assert_eq!(
+            feed.metadata
+                .as_ref()
+                .unwrap()
+                .title
+                .as_ref()
+                .unwrap()
+                .get_primary(),
+            Some("Test Feed".to_string())
+        );
+        assert_eq!(
+            feed.feed_links,
+            Some(vec![Link::new("http://example.com/feed.json")
+                .with_rel("self")
+                .with_type("application/opds+json")])
+        );
+        assert_eq!(
+            feed.feed_links.as_ref().unwrap()[0].href,
+            Some("http://example.com/feed.json".to_string())
+        );
     }
 
     #[test]
@@ -230,13 +263,26 @@ mod tests {
         );
 
         assert_eq!(
-            publication.metadata.title,
+            publication
+                .metadata
+                .as_ref()
+                .unwrap()
+                .title
+                .as_ref()
+                .unwrap()
+                .get_primary(),
             Some("Test Publication".to_string())
         );
         let links = publication.links.as_ref().unwrap();
         assert_eq!(links.len(), 2);
-        assert_eq!(links[0].rel, "self");
-        assert_eq!(links[1].rel, "download");
+        assert_eq!(
+            links[0].href,
+            Some("http://example.com/pub.json".to_string())
+        );
+        assert_eq!(
+            links[1].href,
+            Some("http://example.com/book.epub".to_string())
+        );
     }
 
     #[test]
@@ -311,10 +357,7 @@ mod tests {
         let generator = Generator::new();
 
         // Create invalid feed without publications (required for OPDS 2.0)
-        let feed = Feed::new(
-            "Test Feed",
-            vec![Link::new("self", "http://example.com/feed.json")],
-        );
+        let feed = Feed::new("Test Feed", vec![Link::new("http://example.com/feed.json")]);
 
         let json = generator.generate_and_validate_feed(&feed);
         assert!(json.is_err());
@@ -356,10 +399,8 @@ mod tests {
 
         // Create invalid publication without acquisition link
         let metadata = PublicationMetadata::new("Test Publication");
-        let publication = Publication::new(
-            metadata,
-            Some(vec![Link::new("self", "http://example.com")]),
-        );
+        let publication =
+            Publication::new(Some(metadata), Some(vec![Link::new("http://example.com")]));
 
         let json = generator.generate_and_validate_publication(&publication);
         assert!(json.is_err());
@@ -454,5 +495,55 @@ mod tests {
         );
 
         assert!(generator.validate_publication(&publication).is_ok());
+    }
+
+    #[test]
+    fn test_validation_fails_on_missing_self_link() {
+        let generator = Generator::new();
+
+        // Create feed with links but no self link - needs a collection to validate
+        let feed = Feed::new(
+            "Test Feed",
+            vec![Link::new("http://example.com/feed.json")
+                .with_type("application/opds+json")
+                .with_rel("first")],
+        )
+        .with_publications(vec![]); // Add empty publications collection
+
+        let result = generator.generate_and_validate_feed(&feed);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("self link"));
+    }
+
+    #[test]
+    fn test_validation_fails_on_empty_feed_links() {
+        let generator = Generator::new();
+
+        // Empty array is actually allowed by the API since Feed::new takes Vec<Link>
+        // The test is to verify that empty array fails because of missing self link and missing collection
+        let feed = Feed::new(
+            "Test Feed",
+            vec![], // Empty array - fails because no self link and no collection
+        );
+
+        let result = generator.generate_and_validate_feed(&feed);
+        assert!(result.is_err());
+        // Empty array means no self link, so error should mention "navigation, publications, or groups"
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("navigation, publications, or groups"));
+    }
+
+    #[test]
+    fn test_validation_fails_on_empty_link_href() {
+        let link = Link {
+            href: Some("".to_string()),
+            ..Link::default()
+        };
+
+        let result = link.validate();
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("empty"));
     }
 }

@@ -103,7 +103,7 @@ mod tests {
     fn test_validate_trait() {
         // Test that types implement the Validate trait
         use crate::opds2::Link;
-        let link = Link::new("self", "http://example.com");
+        let link = Link::new("http://example.com");
         let _ = link.validate();
     }
 }

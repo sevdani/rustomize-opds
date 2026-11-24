@@ -2,7 +2,7 @@
 
 use std::io::Write;
 
-use crate::common::error::{OpdsError, Result, ValidationResult};
+use crate::common::error::{Result, ValidationResult};
 use crate::opds12::{Feed, IndirectAcquisition, Link, Price};
 
 /// OPDS 1.2 Generator
@@ -14,34 +14,52 @@ impl Generator {
         Self
     }
 
-    /// Generate OPDS 1.2 feed to XML string
+    /// Generate OPDS 1.2 feed to XML string with namespace declarations
     pub fn generate_feed(&self, feed: &Feed) -> Result<String> {
-        serde_xml_rs::to_string(feed).map_err(OpdsError::Xml)
+        let mut xml = serde_xml_rs::to_string(feed)?;
+
+        // Add OPDS 1.2 namespace declarations to the feed element
+        xml = xml.replace(
+            "<feed>",
+            r#"<feed xmlns="http://www.w3.org/2005/Atom" xmlns:opds="http://opds-spec.org/2010/catalog" xmlns:dc="http://purl.org/dc/terms/">"#
+        );
+
+        // Fix summary element format: convert <summary><$text>...</$text><type>text</type></summary>
+        // to <summary type="text">...</summary>
+        // First, handle the case with type="text"
+        xml = xml.replace(r#"<summary><$text>"#, r#"<summary type="text">"#);
+        xml = xml.replace(r#"</$text><type>text</type></summary>"#, "</summary>");
+        xml = xml.replace(r#"</$text></summary>"#, "</summary>");
+
+        // Fix price element format: convert <price currencycode="USD"><$text>...</$text></price>
+        // to <price currencycode="USD">...</price>
+        xml = xml.replace(r#"><$text>"#, ">");
+        xml = xml.replace(r#"</$text></price>"#, "</price>");
+
+        Ok(xml)
     }
 
-    /// Generate OPDS 1.2 feed to writer
+    /// Generate OPDS 1.2 feed to writer with namespace declarations
     pub fn generate_feed_to_writer<W: Write>(&self, feed: &Feed, mut writer: W) -> Result<()> {
-        let xml = serde_xml_rs::to_string(feed)?;
+        let xml = self.generate_feed(feed)?;
         writer.write_all(xml.as_bytes())?;
         Ok(())
     }
 
-    /// Generate OPDS 1.2 feed to XML string with auto-validation
+    /// Generate OPDS 1.2 feed to XML string with auto-validation and namespace declarations
     pub fn generate_and_validate_feed(&self, feed: &Feed) -> Result<String> {
         feed.validate()?;
-        serde_xml_rs::to_string(feed).map_err(OpdsError::Xml)
+        self.generate_feed(feed)
     }
 
-    /// Generate OPDS 1.2 feed to writer with auto-validation
+    /// Generate OPDS 1.2 feed to writer with auto-validation and namespace declarations
     pub fn generate_and_validate_feed_to_writer<W: Write>(
         &self,
         feed: &Feed,
-        mut writer: W,
+        writer: W,
     ) -> Result<()> {
         feed.validate()?;
-        let xml = serde_xml_rs::to_string(feed)?;
-        writer.write_all(xml.as_bytes())?;
-        Ok(())
+        self.generate_feed_to_writer(feed, writer)
     }
 
     /// Validate a parsed feed
@@ -60,18 +78,12 @@ impl Generator {
 
     /// Create a new OPDS 1.2 price element
     pub fn price(value: impl Into<String>, currency: impl Into<String>) -> Price {
-        Price {
-            value: value.into(),
-            currency_code: currency.into(),
-        }
+        Price::new(value, currency)
     }
 
     /// Create a new OPDS 1.2 indirect acquisition element
     pub fn indirect_acquisition(r#type: impl Into<String>) -> IndirectAcquisition {
-        IndirectAcquisition {
-            r#type: r#type.into(),
-            child: None,
-        }
+        IndirectAcquisition::new(r#type)
     }
 
     /// Create a nested indirect acquisition chain
@@ -79,10 +91,7 @@ impl Generator {
         outer_type: impl Into<String>,
         inner_type: impl Into<String>,
     ) -> IndirectAcquisition {
-        IndirectAcquisition {
-            r#type: outer_type.into(),
-            child: Some(vec![Self::indirect_acquisition(inner_type)]),
-        }
+        IndirectAcquisition::new(outer_type).with_child(IndirectAcquisition::new(inner_type))
     }
 }
 
@@ -102,7 +111,10 @@ pub trait FeedWithLink {
 
 impl FeedWithLink for Feed {
     fn with_self_link(mut self, href: impl Into<String>) -> Self {
-        self.links.push(
+        if self.links.is_none() {
+            self.links = Some(Vec::new());
+        }
+        self.links.as_mut().unwrap().push(
             Link::new("self", href)
                 .with_type("application/atom+xml;profile=opds-catalog;kind=navigation"),
         );
@@ -110,7 +122,10 @@ impl FeedWithLink for Feed {
     }
 
     fn with_link(mut self, link: Link) -> Self {
-        self.links.push(link);
+        if self.links.is_none() {
+            self.links = Some(Vec::new());
+        }
+        self.links.as_mut().unwrap().push(link);
         self
     }
 }
@@ -182,7 +197,7 @@ impl LinkWithProperties for Link {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::opds12::{Entry, Feed, Link};
+    use crate::opds12::{Entry, Feed, Link, Summary};
 
     #[test]
     fn test_generator_new() {
@@ -198,23 +213,26 @@ mod tests {
             "http://example.com/feed.xml",
         );
 
-        assert_eq!(feed.id, "urn:uuid:123");
-        assert_eq!(feed.title, "Test Feed");
-        assert_eq!(feed.links.len(), 1);
-        assert_eq!(feed.links[0].rel, "self");
+        assert_eq!(feed.id, Some("urn:uuid:123".to_string()));
+        assert_eq!(feed.title, Some("Test Feed".to_string()));
+        assert!(feed.links.as_ref().unwrap().len() == 1);
+        assert_eq!(
+            feed.links.as_ref().unwrap()[0].rel,
+            Some("self".to_string())
+        );
     }
 
     #[test]
     fn test_price_helper() {
         let price = Generator::price("10.99", "USD");
-        assert_eq!(price.value, "10.99");
-        assert_eq!(price.currency_code, "USD");
+        assert_eq!(price.value, Some("10.99".to_string()));
+        assert_eq!(price.currency_code, Some("USD".to_string()));
     }
 
     #[test]
     fn test_indirect_acquisition_helper() {
         let acquisition = Generator::indirect_acquisition("application/epub+zip");
-        assert_eq!(acquisition.r#type, "application/epub+zip");
+        assert_eq!(acquisition.r#type, Some("application/epub+zip".to_string()));
         assert!(acquisition.child.is_none());
     }
 
@@ -223,11 +241,11 @@ mod tests {
         let acquisition =
             Generator::nested_indirect_acquisition("application/pdf", "application/epub+zip");
 
-        assert_eq!(acquisition.r#type, "application/pdf");
+        assert_eq!(acquisition.r#type, Some("application/pdf".to_string()));
         assert!(acquisition.child.is_some());
         let child = acquisition.child.unwrap();
         assert_eq!(child.len(), 1);
-        assert_eq!(child[0].r#type, "application/epub+zip");
+        assert_eq!(child[0].r#type, Some("application/epub+zip".to_string()));
     }
 
     #[test]
@@ -235,10 +253,13 @@ mod tests {
         let feed =
             Feed::new("urn:uuid:123", "Test Feed").with_self_link("http://example.com/feed.xml");
 
-        assert_eq!(feed.links.len(), 1);
-        assert_eq!(feed.links[0].rel, "self");
+        assert!(feed.links.as_ref().unwrap().len() == 1);
         assert_eq!(
-            feed.links[0].type_,
+            feed.links.as_ref().unwrap()[0].rel,
+            Some("self".to_string())
+        );
+        assert_eq!(
+            feed.links.as_ref().unwrap()[0].type_,
             Some("application/atom+xml;profile=opds-catalog;kind=navigation".to_string())
         );
     }
@@ -278,11 +299,12 @@ mod tests {
         // Create invalid feed with empty ID
         let mut feed = Feed::new("", "Test Feed");
         let mut entry = Entry::new("urn:uuid:test", "Test Entry");
-        entry.links.push(Link::new(
+        entry.summary = Some(Summary::new("Summary text"));
+        entry.links.as_mut().unwrap().push(Link::new(
             "http://opds-spec.org/acquisition",
             "http://example.com/book.epub",
         ));
-        feed.entries.push(entry);
+        feed.entries.as_mut().unwrap().push(entry);
 
         // Generate with validation should fail
         let xml = generator.generate_and_validate_feed(&feed);
@@ -324,11 +346,12 @@ mod tests {
 
         let mut feed = Feed::new("urn:uuid:test", "");
         let mut entry = Entry::new("urn:uuid:test", "Test Entry");
-        entry.links.push(Link::new(
+        entry.summary = Some(Summary::new("Summary text"));
+        entry.links.as_mut().unwrap().push(Link::new(
             "http://opds-spec.org/acquisition",
             "http://example.com/book.epub",
         ));
-        feed.entries.push(entry);
+        feed.entries.as_mut().unwrap().push(entry);
 
         let mut output = Vec::new();
         let result = generator.generate_and_validate_feed_to_writer(&feed, &mut output);

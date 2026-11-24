@@ -14,26 +14,37 @@ fn test_parse_minimal_opds12_feed() {
     let feed = parser.parse_feed(&xml).expect("Failed to parse feed");
 
     // Verify basic feed properties
-    assert_eq!(feed.id, "urn:uuid:12345678-1234-1234-1234-123456789012");
-    assert_eq!(feed.title, "Minimal OPDS 1.2 Feed");
+    assert_eq!(
+        feed.id,
+        Some("urn:uuid:12345678-1234-1234-1234-123456789012".to_string())
+    );
+    assert_eq!(feed.title, Some("Minimal OPDS 1.2 Feed".to_string()));
 
     // Verify updated date is set
     assert!(feed.updated.is_some_and(|t| t.timestamp() > 0));
 
     // Verify link is present
-    assert!(!feed.links.is_empty());
-    assert_eq!(feed.links[0].rel, "self");
-    assert_eq!(feed.links[0].href, "http://example.com/opds/minimal.xml");
+    assert!(feed.links.is_some());
+    assert_eq!(feed.links.as_ref().unwrap().len(), 1);
+    assert_eq!(
+        feed.links.as_ref().unwrap()[0].rel,
+        Some("self".to_string())
+    );
+    assert_eq!(
+        feed.links.as_ref().unwrap()[0].href,
+        Some("http://example.com/opds/minimal.xml".to_string())
+    );
 
     // Verify entry is present
-    assert!(!feed.entries.is_empty());
-    let entry = &feed.entries[0];
+    assert!(feed.entries.is_some());
+    assert_eq!(feed.entries.as_ref().unwrap().len(), 1);
+    let entry = &feed.entries.as_ref().unwrap()[0];
 
     assert_eq!(
         entry.id,
-        "urn:uuid:entry-12345678-1234-1234-1234-123456789012"
+        Some("urn:uuid:entry-12345678-1234-1234-1234-123456789012".to_string())
     );
-    assert_eq!(entry.title, "Sample Book");
+    assert_eq!(entry.title, Some("Sample Book".to_string()));
 }
 
 #[test]
@@ -50,9 +61,9 @@ fn test_parse_full_opds12_feed() {
     // Verify feed properties
     assert_eq!(
         feed.id,
-        "urn:uuid:catalog-12345678-1234-1234-1234-123456789012"
+        Some("urn:uuid:catalog-12345678-1234-1234-1234-123456789012".to_string())
     );
-    assert_eq!(feed.title, "Complete OPDS 1.2 Catalog");
+    assert_eq!(feed.title, Some("Complete OPDS 1.2 Catalog".to_string()));
 
     // Verify rights
     assert!(feed.rights.is_some());
@@ -63,14 +74,16 @@ fn test_parse_full_opds12_feed() {
     assert_eq!(feed.generator.as_ref().unwrap(), "Test Generator 1.0");
 
     // Verify multiple links - at least self and start links
-    assert!(!feed.links.is_empty());
+    assert!(feed.links.is_some());
+    assert_eq!(feed.links.as_ref().unwrap().len(), 2);
 
     // Verify multiple entries
-    assert!(feed.entries.len() >= 2);
+    assert!(feed.entries.is_some());
+    assert_eq!(feed.entries.as_ref().unwrap().len(), 2);
 
     // Verify first entry
-    let entry = &feed.entries[0];
-    assert_eq!(entry.title, "The Art of Programming");
+    let entry = &feed.entries.as_ref().unwrap()[0];
+    assert_eq!(entry.title, Some("The Art of Programming".to_string()));
 
     // Verify Dublin Core metadata is present (namespace handling)
     // Note: dc: namespace requires proper XML namespace declaration
@@ -97,12 +110,12 @@ fn test_validate_parsed_feed() {
 fn test_helper_functions() {
     // Test price helper
     let price = Generator::price("19.99", "EUR");
-    assert_eq!(price.value, "19.99");
-    assert_eq!(price.currency_code, "EUR");
+    assert_eq!(price.value, Some("19.99".to_string()));
+    assert_eq!(price.currency_code, Some("EUR".to_string()));
 
     // Test indirect acquisition helper
     let acquisition = Generator::indirect_acquisition("application/pdf");
-    assert_eq!(acquisition.r#type, "application/pdf");
+    assert_eq!(acquisition.r#type, Some("application/pdf".to_string()));
     assert!(acquisition.child.is_none());
 
     // Test nested indirect acquisition
@@ -111,5 +124,5 @@ fn test_helper_functions() {
         "application/pdf",
     );
     assert!(nested.child.is_some());
-    assert_eq!(nested.child.unwrap().len(), 1);
+    assert_eq!(nested.child.as_ref().unwrap().len(), 1);
 }

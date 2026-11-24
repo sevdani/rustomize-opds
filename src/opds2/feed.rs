@@ -5,18 +5,15 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 use crate::common::{Validate, ValidationResult};
-use crate::opds2::{Link, Publication};
+use crate::opds2::{FeedMetadata, Link, Publication};
 
 /// OPDS 2.0 Feed
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct Feed {
-    /// Feed identifier
+    /// Feed metadata (required by spec)
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub identifier: Option<String>,
-    /// Type (schema.org type)
-    #[serde(rename = "@type", skip_serializing_if = "Option::is_none")]
-    pub type_: Option<String>,
-    /// Feed title
+    pub metadata: Option<FeedMetadata>,
+    /// Feed title (legacy, kept for backward compatibility)
     #[serde(skip_serializing_if = "Option::is_none")]
     pub title: Option<String>,
     /// Subtitle
@@ -49,9 +46,9 @@ pub struct Feed {
         skip_serializing_if = "Option::is_none"
     )]
     pub number_of_items: Option<u32>,
-    /// Feed links
+    /// Feed links - required by OPDS 2.0
     #[serde(rename = "links")]
-    pub feed_links: Vec<Link>,
+    pub feed_links: Option<Vec<Link>>,
     /// Navigation collection (compact)
     #[serde(skip_serializing_if = "Option::is_none")]
     pub navigation: Option<Vec<Link>>,
@@ -182,16 +179,36 @@ impl Feed {
     /// Create a new feed with required fields
     pub fn new(title: impl Into<String>, feed_links: Vec<Link>) -> Self {
         Self {
-            identifier: None,
-            type_: None,
-            title: Some(title.into()),
+            metadata: Some(FeedMetadata::new(title)),
+            title: None, // Use metadata.title instead
             subtitle: None,
             modified: None,
             description: None,
             items_per_page: None,
             current_page: None,
             number_of_items: None,
-            feed_links,
+            feed_links: Some(feed_links),
+            navigation: None,
+            publications: None,
+            images: None,
+            facets: None,
+            groups: None,
+            additional_properties: HashMap::new(),
+        }
+    }
+
+    /// Create a new feed with feed metadata
+    pub fn new_with_metadata(metadata: FeedMetadata, feed_links: Vec<Link>) -> Self {
+        Self {
+            metadata: Some(metadata),
+            title: None, // Use metadata.title instead
+            subtitle: None,
+            modified: None,
+            description: None,
+            items_per_page: None,
+            current_page: None,
+            number_of_items: None,
+            feed_links: Some(feed_links),
             navigation: None,
             publications: None,
             images: None,
@@ -215,11 +232,31 @@ impl Feed {
 
     /// Validate the feed
     pub fn validate(&self) -> ValidationResult {
-        if self.title.is_none() || self.title.as_ref().map(|s| s.is_empty()).unwrap_or(true) {
+        // Get title from metadata if available, otherwise use legacy title field
+        let title = self
+            .metadata
+            .as_ref()
+            .and_then(|m| m.title.as_ref().and_then(|t| t.get_primary()))
+            .or(self.title.as_ref().map(|t| t.to_string()));
+
+        if title.is_none() || title.unwrap().is_empty() {
             return Err(crate::common::error::OpdsError::MissingField(
                 "title".to_string(),
             ));
         }
+
+        // Validate feed metadata if present
+        if let Some(ref metadata) = self.metadata {
+            metadata.validate()?;
+        }
+
+        // feed_links is required by OPDS 2.0 - must be Some
+        let feed_links =
+            self.feed_links
+                .as_ref()
+                .ok_or(crate::common::error::OpdsError::MissingField(
+                    "feed_links".to_string(),
+                ))?;
 
         // Must have at least one collection
         if self.navigation.is_none() && self.publications.is_none() && self.groups.is_none() {
@@ -230,7 +267,12 @@ impl Feed {
         }
 
         // Must have self link
-        let has_self_link = self.feed_links.iter().any(|l| l.rel == "self");
+        let has_self_link = feed_links.iter().any(|l| {
+            l.rel
+                .as_ref()
+                .map(|rels| rels.contains(&"self".to_string()))
+                .unwrap_or(false)
+        });
         if !has_self_link {
             return Err(crate::common::error::OpdsError::Validation(
                 "Feed must contain a self link".to_string(),
@@ -238,7 +280,7 @@ impl Feed {
         }
 
         // Validate all links
-        for link in &self.feed_links {
+        for link in feed_links {
             link.validate()?;
         }
 
@@ -320,6 +362,14 @@ impl Facet {
         if links.is_empty() {
             return Err(crate::common::error::OpdsError::Validation(
                 "Facet must contain at least one link".to_string(),
+            ));
+        }
+
+        // Per OPDS 2.0 spec: facets "should contain at least two or more Link Objects"
+        // We enforce this as a validation requirement for better OPDS 2.0 compliance
+        if links.len() < 2 {
+            return Err(crate::common::error::OpdsError::Validation(
+                "Facet should contain at least two links for better catalog browsing".to_string(),
             ));
         }
 

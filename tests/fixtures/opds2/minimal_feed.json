@@ -1,9 +1,11 @@
 {
-  "title": "Minimal OPDS 2.0 Feed",
-  "identifier": "urn:uuid:minimal-feed-12345678-1234-1234-1234-123456789012",
+  "metadata": {
+    "title": "Minimal OPDS 2.0 Feed",
+    "identifier": "urn:uuid:minimal-feed-12345678-1234-1234-1234-123456789012"
+  },
   "links": [
     {
-      "rel": "self",
+      "rel": ["self"],
       "href": "http://example.com/opds2/minimal.json",
       "type": "application/opds+json"
     }
@@ -17,12 +19,12 @@
       },
       "links": [
         {
-          "rel": "self",
+          "rel": ["self"],
           "href": "http://example.com/pub/sample.json",
           "type": "application/opds-publication+json"
         },
         {
-          "rel": "download",
+          "rel": ["download"],
           "href": "http://example.com/book.epub",
           "type": "application/epub+zip",
           "title": "Download EPUB"

@@ -16,22 +16,23 @@ fn default_datetime() -> DateTime<Utc> {
 #[serde(rename = "feed")]
 pub struct Feed {
     /// Feed identifier
-    #[serde(rename = "id")]
-    pub id: String,
+    #[serde(rename = "id", skip_serializing_if = "Option::is_none")]
+    pub id: Option<String>,
     /// Feed title
-    pub title: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub title: Option<String>,
     /// Updated date
     #[serde(rename = "updated", skip_serializing_if = "Option::is_none")]
     pub updated: Option<DateTime<Utc>>,
     /// Feed authors
-    #[serde(default, rename = "author")]
-    pub authors: Vec<Author>,
+    #[serde(default, rename = "author", skip_serializing_if = "Option::is_none")]
+    pub authors: Option<Vec<Author>>,
     /// Links
-    #[serde(default, rename = "link")]
-    pub links: Vec<Link>,
+    #[serde(default, rename = "link", skip_serializing_if = "Option::is_none")]
+    pub links: Option<Vec<Link>>,
     /// Feed entries
-    #[serde(default, rename = "entry")]
-    pub entries: Vec<Entry>,
+    #[serde(default, rename = "entry", skip_serializing_if = "Option::is_none")]
+    pub entries: Option<Vec<Entry>>,
     /// Feed contributor
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub contributor: Option<String>,
@@ -54,21 +55,22 @@ pub struct Feed {
 #[serde(rename = "entry")]
 pub struct Entry {
     /// Entry identifier
-    #[serde(rename = "id")]
-    pub id: String,
+    #[serde(rename = "id", skip_serializing_if = "Option::is_none")]
+    pub id: Option<String>,
     /// Entry title
-    pub title: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub title: Option<String>,
     /// Updated date
     #[serde(rename = "updated", skip_serializing_if = "Option::is_none")]
     pub updated: Option<DateTime<Utc>>,
     /// Entry authors
-    #[serde(default, rename = "author")]
-    pub authors: Vec<Author>,
+    #[serde(default, rename = "author", skip_serializing_if = "Option::is_none")]
+    pub authors: Option<Vec<Author>>,
     /// Links
-    #[serde(default, rename = "link")]
-    pub links: Vec<Link>,
+    #[serde(default, rename = "link", skip_serializing_if = "Option::is_none")]
+    pub links: Option<Vec<Link>>,
     /// Entry summary
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default, rename = "summary", skip_serializing_if = "Option::is_none")]
     pub summary: Option<Summary>,
     /// Entry content
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -82,24 +84,56 @@ pub struct Entry {
     /// Rights
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub rights: Option<String>,
-    /// Dublin Core metadata (via dc: prefix)
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// Dublin Core identifier elements
+    #[serde(
+        default,
+        rename = "dc:identifier",
+        skip_serializing_if = "Option::is_none"
+    )]
     pub dc_identifier: Option<Vec<String>>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// Dublin Core title elements
+    #[serde(default, rename = "dc:title", skip_serializing_if = "Option::is_none")]
     pub dc_title: Option<Vec<String>>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// Dublin Core language elements
+    #[serde(
+        default,
+        rename = "dc:language",
+        skip_serializing_if = "Option::is_none"
+    )]
     pub dc_language: Option<Vec<String>>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// Dublin Core issued elements
+    #[serde(default, rename = "dc:issued", skip_serializing_if = "Option::is_none")]
     pub dc_issued: Option<Vec<String>>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// Dublin Core publisher elements
+    #[serde(
+        default,
+        rename = "dc:publisher",
+        skip_serializing_if = "Option::is_none"
+    )]
     pub dc_publisher: Option<Vec<String>>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// Dublin Core subject elements
+    #[serde(
+        default,
+        rename = "dc:subject",
+        skip_serializing_if = "Option::is_none"
+    )]
     pub dc_subject: Option<Vec<String>>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// Dublin Core description elements
+    #[serde(
+        default,
+        rename = "dc:description",
+        skip_serializing_if = "Option::is_none"
+    )]
     pub dc_description: Option<Vec<String>>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// Dublin Core creator elements
+    #[serde(
+        default,
+        rename = "dc:creator",
+        skip_serializing_if = "Option::is_none"
+    )]
     pub dc_creator: Option<Vec<String>>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// Dublin Core rights elements
+    #[serde(default, rename = "dc:rights", skip_serializing_if = "Option::is_none")]
     pub dc_rights: Option<Vec<String>>,
 }
 
@@ -114,14 +148,59 @@ pub struct Author {
     #[serde(rename = "@email", skip_serializing_if = "Option::is_none")]
     pub email: Option<String>,
     /// Author name
-    pub name: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+}
+
+impl Author {
+    /// Create a new author with name
+    pub fn new(name: impl Into<String>) -> Self {
+        Self {
+            uri: None,
+            email: None,
+            name: Some(name.into()),
+        }
+    }
+
+    /// Create a new author with URI
+    pub fn with_uri(name: impl Into<String>, uri: impl Into<String>) -> Self {
+        Self {
+            uri: Some(uri.into()),
+            email: None,
+            name: Some(name.into()),
+        }
+    }
+
+    /// Create a new author with email
+    pub fn with_email(name: impl Into<String>, email: impl Into<String>) -> Self {
+        Self {
+            uri: None,
+            email: Some(email.into()),
+            name: Some(name.into()),
+        }
+    }
+
+    /// Validate the author
+    pub fn validate(&self) -> ValidationResult {
+        // Validate name is non-empty when present
+        if let Some(ref name) = self.name {
+            if name.is_empty() {
+                return Err(OpdsError::Validation(
+                    "author name cannot be empty".to_string(),
+                ));
+            }
+        }
+        Ok(())
+    }
 }
 
 /// Summary element
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename = "summary")]
+#[serde(rename_all = "lowercase")]
 pub struct Summary {
-    #[serde(rename = "$text")]
-    pub text: String,
+    #[serde(rename = "$text", skip_serializing_if = "Option::is_none")]
+    pub text: Option<String>,
     #[serde(rename = "type", skip_serializing_if = "Option::is_none")]
     pub type_: Option<String>,
 }
@@ -130,15 +209,15 @@ impl Summary {
     /// Create a new summary with text
     pub fn new(text: impl Into<String>) -> Self {
         Self {
-            text: text.into(),
-            type_: None,
+            text: Some(text.into()),
+            type_: Some("text".to_string()),
         }
     }
 
     /// Create a new summary with type (must be "text" for OPDS 1.2)
     pub fn with_type(text: impl Into<String>, type_: impl Into<String>) -> Self {
         Self {
-            text: text.into(),
+            text: Some(text.into()),
             type_: Some(type_.into()),
         }
     }
@@ -153,6 +232,14 @@ impl Summary {
                 ));
             }
         }
+        // Validate text is non-empty when present
+        if let Some(ref text) = self.text {
+            if text.is_empty() {
+                return Err(OpdsError::Validation(
+                    "summary text cannot be empty".to_string(),
+                ));
+            }
+        }
         Ok(())
     }
 }
@@ -160,8 +247,8 @@ impl Summary {
 /// Content element
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct Content {
-    #[serde(rename = "$text")]
-    pub text: String,
+    #[serde(rename = "$text", skip_serializing_if = "Option::is_none")]
+    pub text: Option<String>,
     #[serde(rename = "type", skip_serializing_if = "Option::is_none")]
     pub type_: Option<String>,
 }
@@ -170,7 +257,7 @@ impl Content {
     /// Create a new content with text
     pub fn new(text: impl Into<String>) -> Self {
         Self {
-            text: text.into(),
+            text: Some(text.into()),
             type_: None,
         }
     }
@@ -178,7 +265,7 @@ impl Content {
     /// Create a new content with type
     pub fn with_type(text: impl Into<String>, type_: impl Into<String>) -> Self {
         Self {
-            text: text.into(),
+            text: Some(text.into()),
             type_: Some(type_.into()),
         }
     }
@@ -195,6 +282,14 @@ impl Content {
                 )));
             }
         }
+        // Validate text is non-empty when present
+        if let Some(ref text) = self.text {
+            if text.is_empty() {
+                return Err(OpdsError::Validation(
+                    "content text cannot be empty".to_string(),
+                ));
+            }
+        }
         Ok(())
     }
 }
@@ -204,11 +299,11 @@ impl Content {
 #[serde(rename = "link")]
 pub struct Link {
     /// Link relation
-    #[serde(rename = "@rel")]
-    pub rel: String,
+    #[serde(rename = "@rel", skip_serializing_if = "Option::is_none")]
+    pub rel: Option<String>,
     /// Link href
-    #[serde(rename = "@href")]
-    pub href: String,
+    #[serde(rename = "@href", skip_serializing_if = "Option::is_none")]
+    pub href: Option<String>,
     /// Link type (media type)
     #[serde(rename = "@type", skip_serializing_if = "Option::is_none")]
     pub type_: Option<String>,
@@ -231,7 +326,11 @@ pub struct Link {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub price: Option<Vec<Price>>,
     /// OPDS indirect acquisition element
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(
+        default,
+        rename = "indirectAcquisition",
+        skip_serializing_if = "Option::is_none"
+    )]
     pub indirect_acquisition: Option<Vec<IndirectAcquisition>>,
 }
 
@@ -239,8 +338,8 @@ impl Link {
     /// Create a new link
     pub fn new(rel: impl Into<String>, href: impl Into<String>) -> Self {
         Self {
-            rel: rel.into(),
-            href: href.into(),
+            rel: Some(rel.into()),
+            href: Some(href.into()),
             type_: None,
             hreflang: None,
             title: None,
@@ -254,8 +353,23 @@ impl Link {
 
     /// Validate the link
     pub fn validate(&self) -> ValidationResult {
-        // Validate href is a non-empty string
-        if self.href.is_empty() {
+        // rel is required by OPDS 1.2
+        let rel = self
+            .rel
+            .as_ref()
+            .ok_or(OpdsError::Validation("link rel is required".to_string()))?;
+        if rel.is_empty() {
+            return Err(OpdsError::Validation(
+                "link rel cannot be empty".to_string(),
+            ));
+        }
+
+        // href is required by OPDS 1.2
+        let href = self
+            .href
+            .as_ref()
+            .ok_or(OpdsError::Validation("link href is required".to_string()))?;
+        if href.is_empty() {
             return Err(OpdsError::Validation(
                 "link href cannot be empty".to_string(),
             ));
@@ -281,52 +395,65 @@ impl Link {
 
 /// Price element
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename = "price")]
+#[serde(rename_all = "camelCase")]
 pub struct Price {
-    #[serde(rename = "currencycode")]
-    pub currency_code: String,
-    #[serde(rename = "$text")]
-    pub value: String,
+    #[serde(rename = "@currencycode", skip_serializing_if = "Option::is_none")]
+    pub currency_code: Option<String>,
+    #[serde(rename = "$text", skip_serializing_if = "Option::is_none")]
+    pub value: Option<String>,
 }
 
 impl Price {
     /// Create a new price
     pub fn new(value: impl Into<String>, currency_code: impl Into<String>) -> Self {
         Self {
-            value: value.into(),
-            currency_code: currency_code.into(),
+            value: Some(value.into()),
+            currency_code: Some(currency_code.into()),
         }
     }
 
     /// Validate the price
     pub fn validate(&self) -> ValidationResult {
-        // Validate currency code
-        if !is_valid_currency(&self.currency_code) {
-            return Err(OpdsError::InvalidCurrency(format!(
-                "invalid currency code: {}",
-                self.currency_code
-            )));
+        // Validate currency code when present
+        if let Some(ref currency) = self.currency_code {
+            if !is_valid_currency(currency) {
+                return Err(OpdsError::InvalidCurrency(format!(
+                    "invalid currency code: {}",
+                    currency
+                )));
+            }
         }
 
-        // Validate value is a non-negative decimal
-        match self.value.parse::<f64>() {
-            Ok(num) if num >= 0.0 => Ok(()),
-            Ok(_) => Err(OpdsError::Validation(
-                "price value must be non-negative".to_string(),
-            )),
-            Err(_) => Err(OpdsError::Validation(format!(
-                "price value '{}' is not a valid decimal",
-                self.value
-            ))),
+        // Validate value is a non-negative decimal when present
+        if let Some(ref val) = self.value {
+            match val.parse::<f64>() {
+                Ok(num) if num >= 0.0 => Ok(()),
+                Ok(_) => Err(OpdsError::Validation(
+                    "price value must be non-negative".to_string(),
+                )),
+                Err(_) => Err(OpdsError::Validation(format!(
+                    "price value '{}' is not a valid decimal",
+                    val
+                ))),
+            }
+        } else {
+            Ok(())
         }
     }
 }
 
 /// Indirect acquisition element
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename = "indirectAcquisition")]
 pub struct IndirectAcquisition {
-    #[serde(rename = "type")]
-    pub r#type: String,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "@type", skip_serializing_if = "Option::is_none")]
+    pub r#type: Option<String>,
+    #[serde(
+        default,
+        rename = "indirectAcquisition",
+        skip_serializing_if = "Option::is_none"
+    )]
     pub child: Option<Vec<IndirectAcquisition>>,
 }
 
@@ -334,7 +461,7 @@ impl IndirectAcquisition {
     /// Create a new indirect acquisition
     pub fn new(r#type: impl Into<String>) -> Self {
         Self {
-            r#type: r#type.into(),
+            r#type: Some(r#type.into()),
             child: None,
         }
     }
@@ -350,11 +477,13 @@ impl IndirectAcquisition {
 
     /// Validate the indirect acquisition
     pub fn validate(&self) -> ValidationResult {
-        // Validate type is a non-empty string
-        if self.r#type.is_empty() {
-            return Err(OpdsError::Validation(
-                "indirect acquisition type cannot be empty".to_string(),
-            ));
+        // Validate type is a non-empty string when present
+        if let Some(ref t) = self.r#type {
+            if t.is_empty() {
+                return Err(OpdsError::Validation(
+                    "indirect acquisition type cannot be empty".to_string(),
+                ));
+            }
         }
 
         // Validate nested children recursively
@@ -372,12 +501,12 @@ impl Feed {
     /// Create a new feed
     pub fn new(id: impl Into<String>, title: impl Into<String>) -> Self {
         Self {
-            id: id.into(),
-            title: title.into(),
+            id: Some(id.into()),
+            title: Some(title.into()),
             updated: Some(Utc::now()),
-            authors: Vec::new(),
-            links: Vec::new(),
-            entries: Vec::new(),
+            authors: Some(Vec::new()),
+            links: Some(Vec::new()),
+            entries: Some(Vec::new()),
             contributor: None,
             rights: None,
             icon: None,
@@ -388,26 +517,43 @@ impl Feed {
 
     /// Validate the feed
     pub fn validate(&self) -> ValidationResult {
-        if self.updated.is_none() {
-            return Err(OpdsError::MissingField("updated".to_string()));
-        }
-        if self.id.is_empty() {
+        // id is required by OPDS 1.2
+        let id = self
+            .id
+            .as_ref()
+            .ok_or(OpdsError::MissingField("id".to_string()))?;
+        if id.is_empty() {
             return Err(OpdsError::Validation("feed id cannot be empty".to_string()));
         }
-        if self.title.is_empty() {
+
+        // title is required by OPDS 1.2
+        let title = self
+            .title
+            .as_ref()
+            .ok_or(OpdsError::MissingField("title".to_string()))?;
+        if title.is_empty() {
             return Err(OpdsError::Validation(
                 "feed title cannot be empty".to_string(),
             ));
         }
 
+        // updated is required by OPDS 1.2
+        if self.updated.is_none() {
+            return Err(OpdsError::MissingField("updated".to_string()));
+        }
+
         // Validate all entries
-        for entry in &self.entries {
-            entry.validate()?;
+        if let Some(ref entries) = self.entries {
+            for entry in entries {
+                entry.validate()?;
+            }
         }
 
         // Validate all links
-        for link in &self.links {
-            link.validate()?;
+        if let Some(ref links) = self.links {
+            for link in links {
+                link.validate()?;
+            }
         }
 
         Ok(())
@@ -418,11 +564,11 @@ impl Entry {
     /// Create a new entry
     pub fn new(id: impl Into<String>, title: impl Into<String>) -> Self {
         Self {
-            id: id.into(),
-            title: title.into(),
+            id: Some(id.into()),
+            title: Some(title.into()),
             updated: Some(Utc::now()),
-            authors: Vec::new(),
-            links: Vec::new(),
+            authors: Some(Vec::new()),
+            links: Some(Vec::new()),
             summary: None,
             content: None,
             published: None,
@@ -442,24 +588,52 @@ impl Entry {
 
     /// Validate the entry
     pub fn validate(&self) -> ValidationResult {
-        if self.updated.is_none() {
-            return Err(OpdsError::MissingField("updated".to_string()));
-        }
-        if self.id.is_empty() {
+        // id is required by OPDS 1.2
+        let id = self
+            .id
+            .as_ref()
+            .ok_or(OpdsError::MissingField("id".to_string()))?;
+        if id.is_empty() {
             return Err(OpdsError::Validation(
                 "entry id cannot be empty".to_string(),
             ));
         }
-        if self.title.is_empty() {
+
+        // title is required by OPDS 1.2
+        let title = self
+            .title
+            .as_ref()
+            .ok_or(OpdsError::MissingField("title".to_string()))?;
+        if title.is_empty() {
             return Err(OpdsError::Validation(
                 "entry title cannot be empty".to_string(),
             ));
         }
+
+        // updated is required by OPDS 1.2
+        if self.updated.is_none() {
+            return Err(OpdsError::MissingField("updated".to_string()));
+        }
+
+        // At least one of content or summary is required by OPDS 1.2
+        if self.content.is_none() && self.summary.is_none() {
+            return Err(OpdsError::Validation(
+                "entry must contain either content or summary".to_string(),
+            ));
+        }
+
         // Must have at least one acquisition link
         let has_acquisition = self
             .links
-            .iter()
-            .any(|l| l.rel.starts_with("http://opds-spec.org/acquisition"));
+            .as_ref()
+            .map(|links| {
+                links.iter().any(|l| {
+                    l.rel
+                        .as_ref()
+                        .is_some_and(|r| r.starts_with("http://opds-spec.org/acquisition"))
+                })
+            })
+            .unwrap_or(false);
         if !has_acquisition {
             return Err(OpdsError::Validation(
                 "entry must contain at least one acquisition link".to_string(),
@@ -477,8 +651,10 @@ impl Entry {
         }
 
         // Validate all links
-        for link in &self.links {
-            link.validate()?;
+        if let Some(ref links) = self.links {
+            for link in links {
+                link.validate()?;
+            }
         }
 
         Ok(())
@@ -493,11 +669,11 @@ mod tests {
     #[test]
     fn test_feed_new() {
         let feed = Feed::new("urn:uuid:123", "Test Feed");
-        assert_eq!(feed.id, "urn:uuid:123");
-        assert_eq!(feed.title, "Test Feed");
-        assert!(feed.authors.is_empty());
-        assert!(feed.links.is_empty());
-        assert!(feed.entries.is_empty());
+        assert_eq!(feed.id, Some("urn:uuid:123".to_string()));
+        assert_eq!(feed.title, Some("Test Feed".to_string()));
+        assert!(feed.authors.as_ref().unwrap().is_empty());
+        assert!(feed.links.as_ref().unwrap().is_empty());
+        assert!(feed.entries.as_ref().unwrap().is_empty());
     }
 
     #[test]
@@ -521,16 +697,17 @@ mod tests {
     #[test]
     fn test_entry_new() {
         let entry = Entry::new("urn:uuid:456", "Test Entry");
-        assert_eq!(entry.id, "urn:uuid:456");
-        assert_eq!(entry.title, "Test Entry");
-        assert!(entry.authors.is_empty());
-        assert!(entry.links.is_empty());
+        assert_eq!(entry.id, Some("urn:uuid:456".to_string()));
+        assert_eq!(entry.title, Some("Test Entry".to_string()));
+        assert!(entry.authors.as_ref().unwrap().is_empty());
+        assert!(entry.links.as_ref().unwrap().is_empty());
     }
 
     #[test]
     fn test_entry_validation_success() {
         let mut entry = Entry::new("urn:uuid:456", "Test Entry");
-        entry.links.push(Link::new(
+        entry.summary = Some(Summary::new("Summary text"));
+        entry.links.as_mut().unwrap().push(Link::new(
             "http://opds-spec.org/acquisition",
             "http://example.com/book.epub",
         ));
@@ -540,76 +717,88 @@ mod tests {
     #[test]
     fn test_entry_validation_empty_id() {
         let mut entry = Entry::new("", "Test Entry");
-        entry.links.push(Link::new("self", "http://example.com"));
+        entry
+            .links
+            .as_mut()
+            .unwrap()
+            .push(Link::new("self", "http://example.com"));
         assert!(entry.validate().is_err());
     }
 
     #[test]
     fn test_entry_validation_empty_title() {
         let mut entry = Entry::new("urn:uuid:456", "");
-        entry.links.push(Link::new("self", "http://example.com"));
+        entry
+            .links
+            .as_mut()
+            .unwrap()
+            .push(Link::new("self", "http://example.com"));
         assert!(entry.validate().is_err());
     }
 
     #[test]
     fn test_entry_validation_no_acquisition_link() {
         let mut entry = Entry::new("urn:uuid:456", "Test Entry");
-        entry.links.push(Link::new("self", "http://example.com"));
+        entry
+            .links
+            .as_mut()
+            .unwrap()
+            .push(Link::new("self", "http://example.com"));
         assert!(entry.validate().is_err());
     }
 
     #[test]
     fn test_author_default() {
         let author = Author {
-            name: "Test Author".to_string(),
+            name: Some("Test Author".to_string()),
             uri: None,
             email: None,
         };
-        assert_eq!(author.name, "Test Author");
+        assert_eq!(author.name, Some("Test Author".to_string()));
     }
 
     #[test]
     fn test_summary_default() {
         let summary = Summary {
-            text: "Summary text".to_string(),
+            text: Some("Summary text".to_string()),
             type_: None,
         };
-        assert_eq!(summary.text, "Summary text");
+        assert_eq!(summary.text, Some("Summary text".to_string()));
     }
 
     #[test]
     fn test_content_default() {
         let content = Content {
-            text: "Content text".to_string(),
+            text: Some("Content text".to_string()),
             type_: None,
         };
-        assert_eq!(content.text, "Content text");
+        assert_eq!(content.text, Some("Content text".to_string()));
     }
 
     #[test]
     fn test_link_new() {
         let link = Link::new("self", "http://example.com");
-        assert_eq!(link.rel, "self");
-        assert_eq!(link.href, "http://example.com");
+        assert_eq!(link.rel, Some("self".to_string()));
+        assert_eq!(link.href, Some("http://example.com".to_string()));
     }
 
     #[test]
     fn test_price_default() {
         let price = Price {
-            value: "10.99".to_string(),
-            currency_code: "USD".to_string(),
+            value: Some("10.99".to_string()),
+            currency_code: Some("USD".to_string()),
         };
-        assert_eq!(price.value, "10.99");
-        assert_eq!(price.currency_code, "USD");
+        assert_eq!(price.value, Some("10.99".to_string()));
+        assert_eq!(price.currency_code, Some("USD".to_string()));
     }
 
     #[test]
     fn test_indirect_acquisition_default() {
         let acquisition = IndirectAcquisition {
-            r#type: "application/epub+zip".to_string(),
+            r#type: Some("application/epub+zip".to_string()),
             child: None,
         };
-        assert_eq!(acquisition.r#type, "application/epub+zip");
+        assert_eq!(acquisition.r#type, Some("application/epub+zip".to_string()));
     }
 
     #[test]
@@ -732,7 +921,8 @@ mod tests {
     #[test]
     fn test_entry_validation_with_price() {
         let mut entry = Entry::new("urn:uuid:456", "Test Entry");
-        entry.links.push(
+        entry.summary = Some(Summary::new("Summary text"));
+        entry.links.as_mut().unwrap().push(
             Link::new("http://opds-spec.org/acquisition/buy", "http://example.com")
                 .with_price(Price::new("10.99", "USD")),
         );
@@ -743,7 +933,7 @@ mod tests {
     #[test]
     fn test_entry_validation_with_invalid_price() {
         let mut entry = Entry::new("urn:uuid:456", "Test Entry");
-        entry.links.push(
+        entry.links.as_mut().unwrap().push(
             Link::new("http://opds-spec.org/acquisition/buy", "http://example.com")
                 .with_price(Price::new("-5.00", "USD")),
         );
@@ -754,11 +944,12 @@ mod tests {
     fn test_feed_validation_with_entries() {
         let mut feed = Feed::new("urn:uuid:123", "Test Feed");
         let mut entry = Entry::new("urn:uuid:456", "Test Entry");
-        entry.links.push(Link::new(
+        entry.summary = Some(Summary::new("Summary text"));
+        entry.links.as_mut().unwrap().push(Link::new(
             "http://opds-spec.org/acquisition",
             "http://example.com/book.epub",
         ));
-        feed.entries.push(entry);
+        feed.entries.as_mut().unwrap().push(entry);
         assert!(feed.validate().is_ok());
     }
 
@@ -767,8 +958,12 @@ mod tests {
         let mut feed = Feed::new("urn:uuid:123", "Test Feed");
         let mut entry = Entry::new("urn:uuid:456", "Test Entry");
         // No acquisition link - should fail validation
-        entry.links.push(Link::new("self", "http://example.com"));
-        feed.entries.push(entry);
+        entry
+            .links
+            .as_mut()
+            .unwrap()
+            .push(Link::new("self", "http://example.com"));
+        feed.entries.as_mut().unwrap().push(entry);
         assert!(feed.validate().is_err());
     }
 }

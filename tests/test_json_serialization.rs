@@ -1,6 +1,6 @@
 //! Test JSON serialization field names
 
-use rustomize_opds::opds2::{LinkProperties, PublicationMetadata};
+use rustomize_opds::opds2::{LanguageMap, LinkProperties, PublicationMetadata};
 
 #[test]
 fn test_pagination_field_serialization() {
@@ -8,7 +8,7 @@ fn test_pagination_field_serialization() {
         items_per_page: Some(50),
         current_page: Some(1),
         number_of_items: Some(100),
-        title: Some("Test".to_string()),
+        title: Some(LanguageMap::new("Test")),
         ..PublicationMetadata::default()
     };
 
