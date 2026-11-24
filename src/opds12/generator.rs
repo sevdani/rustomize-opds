@@ -33,7 +33,11 @@ impl Generator {
     }
 
     /// Generate OPDS 1.2 feed to writer with auto-validation
-    pub fn generate_and_validate_feed_to_writer<W: Write>(&self, feed: &Feed, mut writer: W) -> Result<()> {
+    pub fn generate_and_validate_feed_to_writer<W: Write>(
+        &self,
+        feed: &Feed,
+        mut writer: W,
+    ) -> Result<()> {
         feed.validate()?;
         let xml = serde_xml_rs::to_string(feed)?;
         writer.write_all(xml.as_bytes())?;
@@ -329,7 +333,10 @@ mod tests {
         let mut output = Vec::new();
         let result = generator.generate_and_validate_feed_to_writer(&feed, &mut output);
         assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("title cannot be empty"));
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("title cannot be empty"));
     }
 
     #[test]

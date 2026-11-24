@@ -16,9 +16,8 @@ impl Generator {
 
     /// Generate OPDS 2.0 feed to JSON string
     pub fn generate_feed(&self, feed: &Feed) -> Result<String> {
-        serde_json::to_string_pretty(feed).map_err(|e| {
-            OpdsError::Custom(format!("Failed to generate OPDS 2.0 feed: {}", e))
-        })
+        serde_json::to_string_pretty(feed)
+            .map_err(|e| OpdsError::Custom(format!("Failed to generate OPDS 2.0 feed: {}", e)))
     }
 
     /// Generate OPDS 2.0 feed to writer
@@ -36,7 +35,11 @@ impl Generator {
     }
 
     /// Generate OPDS 2.0 publication to writer
-    pub fn generate_publication_to_writer<W: Write>(&self, pub_: &Publication, mut writer: W) -> Result<()> {
+    pub fn generate_publication_to_writer<W: Write>(
+        &self,
+        pub_: &Publication,
+        mut writer: W,
+    ) -> Result<()> {
         let json = serde_json::to_string_pretty(pub_)?;
         writer.write_all(json.as_bytes())?;
         Ok(())
@@ -45,13 +48,16 @@ impl Generator {
     /// Generate OPDS 2.0 feed to JSON string with auto-validation
     pub fn generate_and_validate_feed(&self, feed: &Feed) -> Result<String> {
         feed.validate()?;
-        serde_json::to_string_pretty(feed).map_err(|e| {
-            OpdsError::Custom(format!("Failed to generate OPDS 2.0 feed: {}", e))
-        })
+        serde_json::to_string_pretty(feed)
+            .map_err(|e| OpdsError::Custom(format!("Failed to generate OPDS 2.0 feed: {}", e)))
     }
 
     /// Generate OPDS 2.0 feed to writer with auto-validation
-    pub fn generate_and_validate_feed_to_writer<W: Write>(&self, feed: &Feed, mut writer: W) -> Result<()> {
+    pub fn generate_and_validate_feed_to_writer<W: Write>(
+        &self,
+        feed: &Feed,
+        mut writer: W,
+    ) -> Result<()> {
         feed.validate()?;
         let json = serde_json::to_string_pretty(feed)?;
         writer.write_all(json.as_bytes())?;
@@ -67,7 +73,11 @@ impl Generator {
     }
 
     /// Generate OPDS 2.0 publication to writer with auto-validation
-    pub fn generate_and_validate_publication_to_writer<W: Write>(&self, pub_: &Publication, mut writer: W) -> Result<()> {
+    pub fn generate_and_validate_publication_to_writer<W: Write>(
+        &self,
+        pub_: &Publication,
+        mut writer: W,
+    ) -> Result<()> {
         pub_.validate()?;
         let json = serde_json::to_string_pretty(pub_)?;
         writer.write_all(json.as_bytes())?;
@@ -253,7 +263,9 @@ mod tests {
             "http://example.com/book.epub",
         );
 
-        let json = generator.generate_and_validate_publication(&publication).unwrap();
+        let json = generator
+            .generate_and_validate_publication(&publication)
+            .unwrap();
         // Check for the title in the JSON output
         assert!(json.contains("Test Publication"));
     }
@@ -295,13 +307,17 @@ mod tests {
         let generator = Generator::new();
 
         // Create invalid feed without publications (required for OPDS 2.0)
-        let feed = Feed::new("Test Feed", vec![Link::new("self", "http://example.com/feed.json")]);
+        let feed = Feed::new(
+            "Test Feed",
+            vec![Link::new("self", "http://example.com/feed.json")],
+        );
 
         let json = generator.generate_and_validate_feed(&feed);
         assert!(json.is_err());
-        assert!(
-            json.unwrap_err().to_string().contains("navigation, publications, or groups")
-        );
+        assert!(json
+            .unwrap_err()
+            .to_string()
+            .contains("navigation, publications, or groups"));
     }
 
     #[test]
@@ -340,11 +356,7 @@ mod tests {
 
         let json = generator.generate_and_validate_publication(&publication);
         assert!(json.is_err());
-        assert!(
-            json.unwrap_err()
-                .to_string()
-                .contains("acquisition link")
-        );
+        assert!(json.unwrap_err().to_string().contains("acquisition link"));
     }
 
     #[test]
@@ -405,7 +417,8 @@ mod tests {
         );
 
         let mut output = Vec::new();
-        let result = generator.generate_and_validate_publication_to_writer(&publication, &mut output);
+        let result =
+            generator.generate_and_validate_publication_to_writer(&publication, &mut output);
         assert!(result.is_ok());
     }
 
